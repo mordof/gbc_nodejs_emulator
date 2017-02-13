@@ -86,12 +86,12 @@ class CPU {
     // code
     console.log(instr[0])
 
-    instr[2].apply(this, this.retreiveArgs(instr[1]))
+    instr[2].apply(this, this.retrieveArgs(instr[1]))
 
     this.instructionIndex++;
   }
 
-  retreiveArgs(count){
+  retrieveArgs(count){
     var args = [];
 
     while(count > 0){
