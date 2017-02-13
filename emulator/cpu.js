@@ -2,7 +2,7 @@
 // disassembly, byteCount, funciton ref
 var instructionSet = new Array(0xFF)
 
-instructionSet[0x0] = ['Nop', 0, nop]
+instructionSet[0x0] = ['NOP', 0, nop]
 instructionSet[0xFF] = ['RST 0x38', 0, rst_38]
 
 class CPU {
