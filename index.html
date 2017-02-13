@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>GameBoy Color Emulator</title>
+<style>
+  html, body {
+    margin: 0px;
+  }
+
+  canvas {
+    display: block;
+  }
+</style>
+</head>
+<body>
+<canvas width="320" height="288" style="background-color: black"></canvas>
+<script>var gui = require('nw.gui');</script>
+<script type="text/javascript" src="emulator/screen.js"></script>
+<script type="text/javascript" src="emulator/emulator.js"></script>
+<script type="text/javascript" src="emulator/instructions.js"></script>
+<script type="text/javascript" src="emulator/cpu.js"></script>
+<script type="text/javascript" src="emulator/memory.js"></script>
+<script type="text/javascript" src="menu/menu.js"></script>
+<script>
+  var path = './';
+  var fs = require('fs');
+
+  var reloadWatcher=fs.watch(path, { recursive: true }, function() {
+    location.reload();
+    reloadWatcher.close();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "gameboy_color_emulator",
+  "version": "0.0.1",
+  "description": "A gameboy color emulator using NWJS for rendering/running.",
+  "main": "index.html",
+  "scripts": {
+    "start": "node_modules/.bin/nw ."
+  },
+  "window": {
+    "width": 320,
+    "height": 313,
+    "toolbar": true
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "nw": "^0.20.1"
+  },
+  "devDependencies": {
+    "nw": "^0.20.1",
+    "nw-dev": "^3.0.1"
+  }
+}
