@@ -14,7 +14,26 @@
 </head>
 <body>
 <canvas width="320" height="288" style="background-color: black"></canvas>
-<script>var gui = require('nw.gui');</script>
+<script>
+  // some items that we'll use everywhere
+  var gui = require('nw.gui');
+  var fs = require('fs');
+
+  var cpu;
+  var mem;
+
+  function log(){
+    var args = Array.from(arguments);
+
+    for(var i = 0; i < args.length; i++){
+      if(typeof args[i] === 'number'){
+        args[i] = "0x" + args[i].toString(16).toUpperCase()
+      }
+    }
+
+    console.log.apply(console, args);
+  }
+</script>
 <script type="text/javascript" src="emulator/screen.js"></script>
 <script type="text/javascript" src="emulator/emulator.js"></script>
 <script type="text/javascript" src="emulator/instructions.js"></script>
@@ -23,7 +42,6 @@
 <script type="text/javascript" src="menu/menu.js"></script>
 <script>
   var path = './';
-  var fs = require('fs');
 
   // hot module reload... kind of :)
   var reloadWatcher=fs.watch(path, { recursive: true }, function() {

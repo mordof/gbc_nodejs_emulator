@@ -52,7 +52,7 @@ class CPU {
       get bc(){ },
       set bc(v){ },
 
-      get de(){ 
+      get de(){
         // if 0xFF is in D, and 0x80 is in E, when we read
         // this we need to build this into 0xFF80.
         return (this.register[3] << 8) + this.register[4];
@@ -68,15 +68,14 @@ class CPU {
   }
 
   executeROM(){
-    var self = this;
     var instruction;
-    var hndl = setInterval(function(){
-      instruction = instructionSet[self.rom[self.instructionIndex]]
+    var hndl = setInterval(() => {
+      instruction = instructionSet[this.rom[this.instructionIndex]]
       if(instruction){
-        self.execInstruction(instruction)
+        this.execInstruction(instruction)
       } else {
         console.error("CPU Instruction Not Found:")
-        console.log(self.rom[self.instructionIndex]);
+        console.log(this.rom[this.instructionIndex]);
         clearInterval(hndl);
       }
     }, 100)
