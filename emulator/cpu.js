@@ -3,18 +3,20 @@
 var instructionSet = new Array(0xFF)
 
 instructionSet[0x0] = ['NOP', 0, nop]
+instructionSet[0xC3] = ['JP **', 2, jp_xx]
+instructionSet[0xFE] = ['CP A, *', 1, cp_a_x]
 instructionSet[0xFF] = ['RST 0x38', 0, rst_38]
 
 class CPU {
   constructor(rom){
     this.rom = rom;
-    this.instructionIndex = 0;
 
     // most registers tend to start with 0,
     // but SP starts with 0xFFFE, and PC starts with
     // 0x0100
     this.register = {
       data: [0,0,0,0,0,0,0,0,0xFFFE,0x0100],
+      pcUpdated: false,
 
       get a(){ return this.data[0] },
       set a(v){ this.data[0] = v },
@@ -44,7 +46,7 @@ class CPU {
       set sp(v){ this.data[8] = v },
 
       get pc(){ return this.data[9] },
-      set pc(v){ this.data[9] = v },
+      set pc(v){ this.data[9] = v; this.pcUpdated = true },
 
       get af(){ },
       set af(v){ },
@@ -70,32 +72,37 @@ class CPU {
   executeROM(){
     var instruction;
     var hndl = setInterval(() => {
-      instruction = instructionSet[this.rom[this.instructionIndex]]
+      instruction = instructionSet[this.rom[this.register.pc]]
       if(instruction){
         this.execInstruction(instruction)
       } else {
         console.error("CPU Instruction Not Found:")
-        console.log(this.rom[this.instructionIndex]);
+        log(this.rom[this.register.pc]);
         clearInterval(hndl);
       }
     }, 100)
   }
 
   execInstruction(instr){
+    var args = this.retrieveArgs(instr[1])
+
     // code
-    console.log(instr[0])
+    log(instr[0], args)
 
-    instr[2].apply(this, this.retrieveArgs(instr[1]))
+    instr[2].apply(this, args)
 
-    this.instructionIndex++;
+    if(!this.register.pcUpdated)
+      this.register.pc += 0x1;
+
+    this.register.pcUpdated = false
   }
 
   retrieveArgs(count){
     var args = [];
 
     while(count > 0){
-      this.instructionIndex++;
-      args.push(this.rom[this.instructionIndex])
+      this.register.pc += 0x1;
+      args.push(this.rom[this.register.pc])
       count--;
     }
 

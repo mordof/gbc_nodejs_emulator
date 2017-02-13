@@ -27,11 +27,17 @@
 
     for(var i = 0; i < args.length; i++){
       if(typeof args[i] === 'number'){
-        args[i] = "0x" + args[i].toString(16).toUpperCase()
+        args[i] = convertNumToHex(args[i])
+      } else if(Array.isArray(args[i])){
+        args[i] = args[i].map((x) => convertNumToHex(x))
       }
     }
 
     console.log.apply(console, args);
+  }
+
+  function convertNumToHex(num){
+    return `0x${num.toString(16).toUpperCase()}`
   }
 </script>
 <script type="text/javascript" src="emulator/screen.js"></script>
