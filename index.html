@@ -25,6 +25,7 @@
   var path = './';
   var fs = require('fs');
 
+  // hot module reload... kind of :)
   var reloadWatcher=fs.watch(path, { recursive: true }, function() {
     location.reload();
     reloadWatcher.close();
