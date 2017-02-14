@@ -3,8 +3,9 @@
 var instructionSet = new Array(0xFF)
 
 instructionSet[0x0] = ['NOP', 0, nop]
-instructionSet[0xC3] = ['JP **', 2, jp_xx]
-instructionSet[0xFE] = ['CP A, *', 1, cp_a_x]
+instructionSet[0x11] = ['LD DE', 2, ld_de_xx]
+instructionSet[0xC3] = ['JP', 2, jp_xx]
+instructionSet[0xFE] = ['CP A', 1, cp_a_x]
 instructionSet[0xFF] = ['RST 0x38', 0, rst_38]
 
 class CPU {
@@ -33,8 +34,20 @@ class CPU {
       get e(){ return this.data[4] },
       set e(v){ this.data[4] = v },
 
+      // F register gets set differently
       get f(){ return this.data[5] },
-      set f(v){ this.data[5] = v },
+      set f({ z, n, h, c }){
+        var val;
+        val = Number(z)
+        val = val << 1
+        val += Number(n)
+        val = val << 1
+        val += Number(h)
+        val = val << 1
+        val += Number(c)
+        val = val << 4
+        this.data[5] = val
+      },
 
       get h(){ return this.data[6] },
       set h(v){ this.data[6] = v },
@@ -60,8 +73,8 @@ class CPU {
         return (this.register[3] << 8) + this.register[4];
       },
       set de(v){
-        this.data[3] = (val & 0xFF00) >> 8;
-        this.data[4] = val & 0xFF;
+        this.data[3] = (v & 0xFF00) >> 8;
+        this.data[4] = v & 0xFF;
       },
 
       get hl(){ },
@@ -87,24 +100,28 @@ class CPU {
     var args = this.retrieveArgs(instr[1])
 
     // code
-    log(instr[0], args)
+    log(this.register.pc, instr[0], args)
 
     instr[2].apply(this, args)
 
     if(!this.register.pcUpdated)
-      this.register.pc += 0x1;
+      this.register.pc += 0x1 + instr[1];
 
     this.register.pcUpdated = false
   }
 
   retrieveArgs(count){
     var args = [];
+    var origPC = this.register.pc;
 
     while(count > 0){
       this.register.pc += 0x1;
       args.push(this.rom[this.register.pc])
       count--;
     }
+
+    this.register.pc = origPC;
+    this.register.pcUpdated = false;
 
     return args;
   }
