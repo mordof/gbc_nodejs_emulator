@@ -1,8 +1,11 @@
-
-// disassembly, byteCount, funciton ref
-var instructionSet = new Array(0xFF);
+// OpCodes that mark cpu.lastIsCP to true
 var cpInstructions = [0x2F,0xB8,0xB9,0xBA,0xBB,0xBC,0xBD,0xBE,0xBF,0xFE];
 
+// 0x0 - 0xFF inclusive ends up being 0x100
+var instructionSet = new Array(0x100);
+
+// format for each instructionSet item:
+// Instruction, byteCount (how many arg bytes), funciton ref
 instructionSet[0x0] = ['NOP', 0, nop]
 instructionSet[0x11] = ['LD DE', 2, ld_de_xx]
 instructionSet[0xC3] = ['JP', 2, jp_xx]
@@ -115,14 +118,17 @@ class CPU {
 
   executeROM(){
     var instruction;
-    var instructionCode;
+    var opCode;
     var hndl = setInterval(() => {
-      instructionCode = this.rom[this.register.pc]
-      if(cpInstructions.findIndex((code) => { return code == instructionCode }) > -1){
-        this.lastIsCP = true;
-      }
+      opCode = this.rom[this.register.pc]
 
-      instruction = instructionSet[instructionCode]
+      // in our math operations we need to know if the last OP is
+      // a CP type OpCode. This influences the F register flags that get set.
+      if(cpInstructions.indexOf(opCode) > -1)
+        this.lastIsCP = true;
+
+      // grab the instruction implementation details for the current OpCode
+      instruction = instructionSet[opCode]
       if(instruction){
         this.execInstruction(instruction)
       } else {
@@ -137,29 +143,32 @@ class CPU {
   execInstruction(instr){
     var args = this.retrieveArgs(instr[1])
 
-    // code
+    // log the current program counter, the instruction, and the arg details
     log(this.register.pc, instr[0], args)
 
+    // run the instruction
     instr[2].apply(this, args)
 
+    // some instructions modify the pc, so only shift it forward if
+    // the pc hasn't been updated.
     if(!this.register.pcUpdated)
       this.register.pc += 0x1 + instr[1];
 
+    // clean out the pcUpdated flag
     this.register.pcUpdated = false
   }
 
   retrieveArgs(count){
     var args = [];
-    var origPC = this.register.pc;
+    var stepPC = this.register.pc;
 
+    // step forward, and collect the arguments needed for the instruction
+    // (count based on instructionSet arg number)
     while(count > 0){
-      this.register.pc += 0x1;
-      args.push(this.rom[this.register.pc])
+      stepPC += 0x1;
+      args.push(this.rom[stepPC])
       count--;
     }
-
-    this.register.pc = origPC;
-    this.register.pcUpdated = false;
 
     return args;
   }
