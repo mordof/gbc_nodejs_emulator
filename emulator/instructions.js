@@ -5,8 +5,7 @@ function ld_de_xx(byte, byte2){
 }
 
 function jp_xx(byte, byte2){
-  var short = bytesToShort(byte, byte2)
-  cpu.register.pc = short
+  cpu.register.pc = bytesToShort(byte, byte2)
 }
 
 function cp_a_x(byte){
