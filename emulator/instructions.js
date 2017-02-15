@@ -4,6 +4,15 @@ function ld_de_xx(byte, byte2){
   cpu.register.de = bytesToShort(byte, byte2)
 }
 
+function jr_z_x(byte){
+  if(cpu.register.f.z)
+    cpu.register.pc += byte + 2
+}
+
+function xor_a(){
+  cpu.register.a = cpu.math.xor(cpu.register.a, cpu.register.a)
+}
+
 function jp_xx(byte, byte2){
   cpu.register.pc = bytesToShort(byte, byte2)
 }

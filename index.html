@@ -10,10 +10,28 @@
   canvas {
     display: block;
   }
+
+  .mem_info {
+    position: absolute;
+    left: 330px;
+    width: 120px;
+    border: 1px solid black;
+    top: 10px;
+    height: 120px;
+  }
+
+  .f_flags {
+    float: right;
+    padding-right: 3px;
+  }
 </style>
 </head>
 <body>
 <canvas width="320" height="288" style="background-color: black"></canvas>
+<div class="mem_info">
+<div class="f_flags"></div>
+<div class="registers"></div>
+</div>
 <script>
   // some items that we'll use everywhere
   var gui = require('nw.gui');

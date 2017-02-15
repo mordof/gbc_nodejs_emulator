@@ -8,6 +8,8 @@ var instructionSet = new Array(0x100);
 // Instruction, byteCount (how many arg bytes), funciton ref
 instructionSet[0x0] = ['NOP', 0, nop]
 instructionSet[0x11] = ['LD DE', 2, ld_de_xx]
+instructionSet[0x28] = ['JR Z', 1, jr_z_x]
+instructionSet[0xAF] = ['XOR A', 0, xor_a]
 instructionSet[0xC3] = ['JP', 2, jp_xx]
 instructionSet[0xFE] = ['CP A', 1, cp_a_x]
 instructionSet[0xFF] = ['RST 0x38', 0, rst_38]
@@ -18,6 +20,12 @@ class CPU {
     this.lastIsCP = false;
 
     var self = this;
+
+    this.dataOutput = {
+      meminfo: document.querySelector('.mem_info'),
+      f_flags: document.querySelector('.f_flags'),
+      registers: document.querySelector('.registers')
+    }
 
     this.math = {
       add(A, x){
@@ -43,6 +51,18 @@ class CPU {
         }
 
         return res
+      },
+      xor(n, x){
+        var res = n ^ x;
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 0,
+          c: 0
+        }
+
+        return res;
       }
     }
 
@@ -69,7 +89,14 @@ class CPU {
       set e(v){ this.data[4] = v },
 
       // F register gets set differently
-      get f(){ return this.data[5] },
+      get f(){
+        return {
+          z: !!(this.data[5] & 0b10000000),
+          n: !!(this.data[5] & 0b01000000),
+          h: !!(this.data[5] & 0b00100000),
+          c: !!(this.data[5] & 0b00010000)
+        }
+      },
       set f({ z, n, h, c }){
         var val;
         val = Number(z)
@@ -95,23 +122,23 @@ class CPU {
       get pc(){ return this.data[9] },
       set pc(v){ this.data[9] = v; this.pcUpdated = true },
 
-      get af(){ },
+      get af(){ return (this.data[0] << 8) + this.data[5] },
       set af(v){ },
 
-      get bc(){ },
+      get bc(){ return (this.data[1] << 8) + this.data[2] },
       set bc(v){ },
 
       get de(){
         // if 0xFF is in D, and 0x80 is in E, when we read
         // this we need to build this into 0xFF80.
-        return (this.register[3] << 8) + this.register[4];
+        return (this.data[3] << 8) + this.data[4];
       },
       set de(v){
         this.data[3] = (v & 0xFF00) >> 8;
         this.data[4] = v & 0xFF;
       },
 
-      get hl(){ },
+      get hl(){ return (this.data[6] << 8) + this.data[7] },
       set hl(v){ }
     }
   }
@@ -133,7 +160,7 @@ class CPU {
         this.execInstruction(instruction)
       } else {
         console.error("CPU Instruction Not Found:")
-        log(this.rom[this.register.pc]);
+        log(this.register.pc, this.rom[this.register.pc]);
         clearInterval(hndl);
       }
       this.lastIsCP = false;
@@ -149,6 +176,8 @@ class CPU {
     // run the instruction
     instr[2].apply(this, args)
 
+
+
     // some instructions modify the pc, so only shift it forward if
     // the pc hasn't been updated.
     if(!this.register.pcUpdated)
@@ -156,6 +185,24 @@ class CPU {
 
     // clean out the pcUpdated flag
     this.register.pcUpdated = false
+
+
+    var f_register = this.register.f
+    this.dataOutput.f_flags.innerHTML = `
+Z: ${f_register.z ? "1" : "0"}<br>
+N: ${f_register.n ? "1" : "0"}<br>
+H: ${f_register.h ? "1" : "0"}<br>
+C: ${f_register.c ? "1" : "0"}`
+
+    this.dataOutput.registers.innerHTML = `
+AF: ${convertShortToHex(this.register.af)}<br>
+BC: ${convertShortToHex(this.register.bc)}<br>
+DE: ${convertShortToHex(this.register.de)}<br>
+HL: ${convertShortToHex(this.register.hl)}<br>
+SP: ${convertShortToHex(this.register.sp)}<br>
+PC: ${convertShortToHex(this.register.pc)}
+`
+
   }
 
   retrieveArgs(count){

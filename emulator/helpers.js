@@ -7,12 +7,15 @@ function log(){
 
   for(var i = 0; i < args.length; i++){
     if(typeof args[i] === 'number'){
-      args[i] = convertNumToHex(args[i])
+      if(args[i] > 0xFF)
+        args[i] = convertShortToHex(args[i])
+      else
+        args[i] = convertByteToHex(args[i])
     } else if(Array.isArray(args[i])){
       if(args[i].length === 2){
-        args[i] = convertNumToHex(bytesToShort(args[i][0], args[i][1]))
+        args[i] = convertShortToHex(bytesToShort(args[i][0], args[i][1]))
       } else if(args[i].length === 1) {
-        args[i] = convertNumToHex(args[i][0])
+        args[i] = convertByteToHex(args[i][0])
       } else {
         args[i] = undefined
       }
@@ -22,6 +25,12 @@ function log(){
   console.log.apply(console, args.filter((i) => { return i !== undefined }));
 }
 
-function convertNumToHex(num){
-  return `0x${num.toString(16).toUpperCase()}`
+function convertByteToHex(num){
+  var hex = num.toString(16).toUpperCase()
+  return `0x${"0".repeat(2 - hex.length) + hex}`
+}
+
+function convertShortToHex(num){
+  var hex = num.toString(16).toUpperCase()
+  return `0x${"0".repeat(4 - hex.length) + hex}`
 }

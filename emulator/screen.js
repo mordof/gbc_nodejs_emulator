@@ -11,7 +11,7 @@ var ScreenProperties = {
 class Screen {
   static setScreenScale(scale){
     scale = scale || 1
-    gui.Window.get().width = ScreenProperties.initialWidth * scale;
+    gui.Window.get().width = ScreenProperties.initialWidth * scale + 142;
     gui.Window.get().height = ScreenProperties.initialHeight * scale + ScreenProperties.menuHeight;
 
     ScreenProperties.canvas.width = ScreenProperties.initialWidth * scale;
