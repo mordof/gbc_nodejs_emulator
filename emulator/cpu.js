@@ -1,6 +1,7 @@
 
 // disassembly, byteCount, funciton ref
-var instructionSet = new Array(0xFF)
+var instructionSet = new Array(0xFF);
+var cpInstructions = [0x2F,0xB8,0xB9,0xBA,0xBB,0xBC,0xBD,0xBE,0xBF,0xFE];
 
 instructionSet[0x0] = ['NOP', 0, nop]
 instructionSet[0x11] = ['LD DE', 2, ld_de_xx]
@@ -11,6 +12,36 @@ instructionSet[0xFF] = ['RST 0x38', 0, rst_38]
 class CPU {
   constructor(rom){
     this.rom = rom;
+    this.lastIsCP = false;
+
+    var self = this;
+
+    this.math = {
+      add(A, x){
+        var res = A + x;
+
+        cpu.register.f = {
+          z: res === 0 || (self.lastIsCP ? A === x : false),
+          n: 0,
+          h: (A & 0xF) + (x & 0xF) > 0xF,
+          c: res > 0xFF || (self.lastIsCP ? A < x : false)
+        }
+
+        return res
+      },
+      subtract(A, y){
+        var res = A - y
+
+        cpu.register.f = {
+          z: res === 0 || (self.lastIsCP ? A === y : false),
+          n: 1,
+          h: (A & 0xF) - (y & 0xF) < 0x0,
+          c: res < 0x0 || (self.lastIsCP ? A === y : false)
+        }
+
+        return res
+      }
+    }
 
     // most registers tend to start with 0,
     // but SP starts with 0xFFFE, and PC starts with
@@ -84,8 +115,14 @@ class CPU {
 
   executeROM(){
     var instruction;
+    var instructionCode;
     var hndl = setInterval(() => {
-      instruction = instructionSet[this.rom[this.register.pc]]
+      instructionCode = this.rom[this.register.pc]
+      if(cpInstructions.findIndex((code) => { return code == instructionCode }) > -1){
+        this.lastIsCP = true;
+      }
+
+      instruction = instructionSet[instructionCode]
       if(instruction){
         this.execInstruction(instruction)
       } else {
@@ -93,6 +130,7 @@ class CPU {
         log(this.rom[this.register.pc]);
         clearInterval(hndl);
       }
+      this.lastIsCP = false;
     }, 100)
   }
 
