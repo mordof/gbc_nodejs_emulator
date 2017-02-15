@@ -5,8 +5,11 @@ function ld_de_xx(byte, byte2){
 }
 
 function jr_z_x(byte){
-  if(cpu.register.f.z)
+  if(cpu.register.f.z){
+    // byte needs to be converted to signed.
+    // gbc is two's complement according to bgb behavior
     cpu.register.pc += byte + 2
+  }
 }
 
 function xor_a(){
