@@ -6,9 +6,12 @@ function ld_de_xx(byte, byte2){
 
 function jr_z_x(byte){
   if(cpu.register.f.z){
-    // byte needs to be converted to signed.
-    // gbc is two's complement according to bgb behavior
-    cpu.register.pc += byte + 2
+    // stupid way of converting to signed byte for now.
+    // gbc is two's complement
+    var intArr = new Int8Array(1)
+    intArr[0] = byte
+
+    cpu.register.pc += (intArr[0] + 2)
   }
 }
 
