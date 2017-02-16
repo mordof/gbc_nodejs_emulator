@@ -6,13 +6,14 @@ var instructionSet = new Array(0x100);
 
 // format for each instructionSet item:
 // Instruction, byteCount (how many arg bytes), funciton ref
-instructionSet[0x0] = ['NOP', 0, nop]
+instructionSet[0x00] = ['NOP', 0, nop]
 instructionSet[0x11] = ['LD DE', 2, ld_de_xx]
 instructionSet[0x18] = ['JR', 1, jr_x]
 instructionSet[0x28] = ['JR Z', 1, jr_z_x]
 instructionSet[0xAF] = ['XOR A', 0, xor_a]
 instructionSet[0xC3] = ['JP', 2, jp_xx]
-instructionSet[0xEA] = ['LD %x A', 2, ld_xx_a]
+instructionSet[0xE0] = ['LDH (0xFF00 + %x) A', 1, ldh_x_a]
+instructionSet[0xEA] = ['LD %xx A', 2, ld_xx_a]
 instructionSet[0xF3] = ['DI', 0, di]
 instructionSet[0xFE] = ['CP A', 1, cp_a_x]
 instructionSet[0xFF] = ['RST 0x38', 0, rst_38]
@@ -189,7 +190,9 @@ class CPU {
         this.execInstruction(instruction)
       } else {
         console.error("CPU Instruction Not Found:")
-        log(this.register.pc, this.rom[this.register.pc]);
+        console.log(
+          `%c${convertShortToHex(this.register.pc)} %c${convertByteToHex(this.rom[this.register.pc])}`,
+          'color: #999', 'color: #222');
         clearInterval(hndl);
       }
 
@@ -211,8 +214,21 @@ class CPU {
 
     var args = this.retrieveArgs(instr[1])
 
+    var argOutput = ""
+
+    if(args.length === 2){
+      argOutput = convertShortToHex(bytesToShort(args[0], args[1]))
+    } else if(args.length === 1) {
+      argOutput = convertByteToHex(args[0])
+    } else {
+      argOutput = ""
+    }
+
     // log what pc the instruction resides at, the instruction, and the arg details
-    log(this.register.pc - 1 - args.length, instr[0], args)
+    console.log(
+      `%c${convertShortToHex(this.register.pc - 1 - args.length)}` +
+     ` %c${instr[0]}` +
+     ` %c${argOutput}`, 'color: #999', 'color: #222', 'color: #4073ff')
 
     // run the instruction
     instr[2].apply(this, args)

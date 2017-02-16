@@ -9,8 +9,7 @@ class Memory {
       // log('Bank 0 RAM Write:', address, '(', val, ')')
       this.internal_ram[0][address] = val;
     } else {
-      console.error('Address has not been implemented yet')
-      log(address)
+      console.error('Memory Location', convertShortToHex(address), 'has not been implemented yet')
     }
   }
 

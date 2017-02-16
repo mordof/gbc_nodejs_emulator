@@ -22,6 +22,10 @@ function jp_xx(byte, byte2){
   cpu.register.pc = bytesToShort(byte, byte2)
 }
 
+function ldh_x_a(byte){
+  mem.writeByte(0xFF00 + byte, cpu.register.a)
+}
+
 function ld_xx_a(byte, byte2){
   mem.writeByte(bytesToShort(byte, byte2), cpu.register.a)
 }
