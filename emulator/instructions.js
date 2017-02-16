@@ -4,14 +4,13 @@ function ld_de_xx(byte, byte2){
   cpu.register.de = bytesToShort(byte, byte2)
 }
 
+function jr_x(byte){
+  cpu.register.pc += cpu.math.signByte(byte)
+}
+
 function jr_z_x(byte){
   if(cpu.register.f.z){
-    // stupid way of converting to signed byte for now.
-    // gbc is two's complement
-    var intArr = new Int8Array(1)
-    intArr[0] = byte
-
-    cpu.register.pc += (intArr[0] + 2)
+    cpu.register.pc += cpu.math.signByte(byte)
   }
 }
 
@@ -23,11 +22,19 @@ function jp_xx(byte, byte2){
   cpu.register.pc = bytesToShort(byte, byte2)
 }
 
+function ld_xx_a(byte, byte2){
+  mem.writeByte(bytesToShort(byte, byte2), cpu.register.a)
+}
+
+function di(){
+  cpu.queueDisableInterrupts()
+}
+
 function cp_a_x(byte){
   cpu.math.subtract(cpu.register.a, byte)
 }
 
 function rst_38(){
-  mem.writeStack(cpu.register.pc + 1)
+  mem.writeStack(cpu.register.pc)
   cpu.register.pc = 0x38
 }

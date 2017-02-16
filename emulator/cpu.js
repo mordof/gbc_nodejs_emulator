@@ -8,9 +8,12 @@ var instructionSet = new Array(0x100);
 // Instruction, byteCount (how many arg bytes), funciton ref
 instructionSet[0x0] = ['NOP', 0, nop]
 instructionSet[0x11] = ['LD DE', 2, ld_de_xx]
+instructionSet[0x18] = ['JR', 1, jr_x]
 instructionSet[0x28] = ['JR Z', 1, jr_z_x]
 instructionSet[0xAF] = ['XOR A', 0, xor_a]
 instructionSet[0xC3] = ['JP', 2, jp_xx]
+instructionSet[0xEA] = ['LD %x A', 2, ld_xx_a]
+instructionSet[0xF3] = ['DI', 0, di]
 instructionSet[0xFE] = ['CP A', 1, cp_a_x]
 instructionSet[0xFF] = ['RST 0x38', 0, rst_38]
 
@@ -18,6 +21,9 @@ class CPU {
   constructor(rom){
     this.rom = rom;
     this.lastIsCP = false;
+    this.signingArr = new Int8Array(1)
+    this.interruptsEnabled = true;
+    this.disableInterruptQueued = false;
 
     var self = this;
 
@@ -63,6 +69,11 @@ class CPU {
         }
 
         return res;
+      },
+      signByte(x){
+        // stupid way of converting to signed byte for now.
+        self.signingArr[0] = x;
+        return self.signingArr[0]
       }
     }
 
@@ -143,11 +154,29 @@ class CPU {
     }
   }
 
+  queueDisableInterrupts(){
+    this.queueDisablingInterrupts = true;
+  }
+
+  disableInterrupts(){
+    this.interruptsEnabled = false;
+  }
+
+  enableInterrupts(){
+    this.interruptsEnabled = true;
+  }
+
   executeROM(){
     var instruction;
     var opCode;
+    var interruptsQueuedForDisable = false;
     var hndl = setInterval(() => {
       opCode = this.rom[this.register.pc]
+      // interrupts can be queued to be disabled after the NEXT instruction.
+      // in this case, we check to see if it's been queued by the last
+      // instruction, then clear the flag.
+      interruptsQueuedForDisable = this.queueDisablingInterrupts;
+      this.queueDisablingInterrupts = false;
 
       // in our math operations we need to know if the last OP is
       // a CP type OpCode. This influences the F register flags that get set.
@@ -163,29 +192,30 @@ class CPU {
         log(this.register.pc, this.rom[this.register.pc]);
         clearInterval(hndl);
       }
+
+      // after execution, we check if our loop has interrupts queued for disable
+      if(interruptsQueuedForDisable){
+        this.disableInterrupts();
+      }
+
       this.lastIsCP = false;
+      interruptsQueuedForDisable = false
     }, 100)
   }
 
   execInstruction(instr){
+    // step the PC up one so it's pointing after the instruction.
+    // this is important for collecting args, and for working with
+    // pc inside of the instruction
+    this.register.pc += 1;
+
     var args = this.retrieveArgs(instr[1])
 
-    // log the current program counter, the instruction, and the arg details
-    log(this.register.pc, instr[0], args)
+    // log what pc the instruction resides at, the instruction, and the arg details
+    log(this.register.pc - 1 - args.length, instr[0], args)
 
     // run the instruction
     instr[2].apply(this, args)
-
-
-
-    // some instructions modify the pc, so only shift it forward if
-    // the pc hasn't been updated.
-    if(!this.register.pcUpdated)
-      this.register.pc += 0x1 + instr[1];
-
-    // clean out the pcUpdated flag
-    this.register.pcUpdated = false
-
 
     var f_register = this.register.f
     this.dataOutput.f_flags.innerHTML = `
@@ -207,13 +237,12 @@ PC: ${convertShortToHex(this.register.pc)}
 
   retrieveArgs(count){
     var args = [];
-    var stepPC = this.register.pc;
 
     // step forward, and collect the arguments needed for the instruction
     // (count based on instructionSet arg number)
     while(count > 0){
-      stepPC += 0x1;
-      args.push(this.rom[stepPC])
+      args.push(this.rom[this.register.pc])
+      this.register.pc += 1
       count--;
     }
 

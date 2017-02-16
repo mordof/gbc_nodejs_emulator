@@ -1,13 +1,17 @@
 class Memory {
   constructor(){
-    this.internal_ram = []
+    this.internal_ram_bank_id = 1
+    this.internal_ram = [[], [], [], [], [], [], [], []]
   }
 
   writeByte(address, val){
-    // if(address >= 0xC000 && address <=  0xCFFF){
-      log('Bank 0 RAM Write:', address, '(', val, ')')
-      this.internal_ram[address] = val;
-    // }
+    if(address >= 0xC000 && address <=  0xCFFF){
+      // log('Bank 0 RAM Write:', address, '(', val, ')')
+      this.internal_ram[0][address] = val;
+    } else {
+      console.error('Address has not been implemented yet')
+      log(address)
+    }
   }
 
   writeShort(address, val){
