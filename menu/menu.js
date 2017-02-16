@@ -61,5 +61,3 @@ gui.Window.get().menu = menu;
 
 // set the viewport to scale 2x (default)
 scale2x.click()
-
-console.log('Menu Initialized.')
