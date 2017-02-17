@@ -8,6 +8,7 @@ class CPU {
     this.rom = rom;
     this.lastIsCP = false;
     this.signingArr = new Int8Array(1)
+    this.signingShortArr = new Int16Array(1)
     this.interruptsEnabled = true;
     this.disableInterruptQueued = false;
     this.loopHndl;
@@ -22,14 +23,17 @@ class CPU {
 
     this.math = {
       add_sp_x(SP, x){
+        // this implementation may be bad... SP is a short, but we're
+        // treating it as a byte.
         var decRes = SP + x;
-        var res = self.signByte(decRes)
+        var res = self.signShort(decRes)
 
         cpu.register.f = {
           z: 0,
           n: 0,
           h: (SP & 0xF) + (x & 0xF) > 0xF,
-          c: decRes > 0xFF
+          c: decRes > 0xFFFF // should this be 0xFF or 0xFFFF? i think 0xFFFF
+                             // because SP is a short
         }
 
         return res
@@ -49,7 +53,7 @@ class CPU {
       },
       add_16(x, y){
         var decRes = x + y
-        var res = self.signByte(decRes)
+        var res = self.signShort(decRes)
 
         cpu.register.f = {
           z: cpu.register.f.z,
@@ -60,19 +64,31 @@ class CPU {
 
         return res
       },
-      subtract(A, y){
-        var decRes = A - y
+      subtract(x, y){
+        var decRes = x - y
         var res = self.signByte(decRes)
 
         cpu.register.f = {
-          z: res === 0 || (self.lastIsCP ? A === y : false),
+          z: res === 0 || (self.lastIsCP ? x === y : false),
           n: 1,
-          h: (A & 0xF) - (y & 0xF) < 0x0,
-          c: decRes < 0x0 || (self.lastIsCP ? A === y : false)
+          h: (x & 0xF) - (y & 0xF) < 0x0,
+          c: decRes < 0x0 || (self.lastIsCP ? x === y : false)
         }
 
         return res
       },
+      /***************************************
+       *
+       *
+       *   All of these BitOps used to be
+       *   Byte/Short indifferent, but now
+       *   with the signing of them.. they're all
+       *   restricted to working with bytes.
+       *
+       *   Is this a problem!?!?!
+       *
+       *
+       ***************************************/
       xor(n, x){
         var res = self.signByte(n ^ x)
 
@@ -132,6 +148,10 @@ class CPU {
         }
 
         return res
+      },
+      signShort(x){
+        self.signingShortArr[0] = x
+        return self.signingShortArr[0]
       },
       signByte(x){
         // stupid way of converting to signed byte for now.
