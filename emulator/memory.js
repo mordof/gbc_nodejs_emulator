@@ -4,6 +4,20 @@ class Memory {
     this.internal_ram = [[], [], [], [], [], [], [], []]
   }
 
+  readShort(address){
+    var val = this.readByte(address + 1) << 8
+    val += this.readByte(address)
+    return val
+  }
+
+  readByte(address){
+    if(address >= 0xC000 && address <= 0xCFFF){
+      return this.internal_ram[0][address];
+    } else {
+      console.error('Read Attempt at Unimplemented Address', convertShortToHex(address))
+    }
+  }
+
   writeByte(address, val){
     if(address >= 0xC000 && address <=  0xCFFF){
       // log('Bank 0 RAM Write:', address, '(', val, ')')
@@ -19,6 +33,12 @@ class Memory {
     // write the second byte to the address just after
     // the address specified.
     this.writeByte(address + 1, (val & 0xFF00) >> 8)
+  }
+
+  readStack(){
+    var val = this.readShort(cpu.register.sp)
+    cpu.register.sp += 2;
+    return val;
   }
 
   writeStack(val){

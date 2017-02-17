@@ -20,6 +20,20 @@ class CPU {
     }
 
     this.math = {
+      // reserved for use with OpCode F8 (LDHL SP N)
+      // See pg. 77 of GB PDF for details.
+      add_sp_x(SP, x){
+        var res = SP + x;
+
+        cpu.register.f = {
+          z: 0,
+          n: 0,
+          h: (SP & 0xF) + (x & 0xF) > 0xF,
+          c: res > 0xFF
+        }
+
+        return res
+      },
       add(A, x){
         var res = A + x;
 
@@ -120,10 +134,19 @@ class CPU {
       set pc(v){ this.data[9] = v; this.pcUpdated = true },
 
       get af(){ return (this.data[0] << 8) + this.data[5] },
-      set af(v){ },
+      set af(v){ 
+        this.data[0] = (v & 0xFF00) >> 8;
+        // the least significant byte is always 0000 for register F
+        // in the GameBoy Z80 implementation, regardless what gets
+        // written to it.
+        this.data[5] = v & 0xF0;
+      },
 
       get bc(){ return (this.data[1] << 8) + this.data[2] },
-      set bc(v){ },
+      set bc(v){
+        this.data[1] = (v & 0xFF00) >> 8;
+        this.data[2] = v & 0xFF;
+      },
 
       get de(){
         // if 0xFF is in D, and 0x80 is in E, when we read
@@ -136,7 +159,10 @@ class CPU {
       },
 
       get hl(){ return (this.data[6] << 8) + this.data[7] },
-      set hl(v){ }
+      set hl(v){ 
+        this.data[6] = (v & 0xFF00) >> 8;
+        this.data[7] = v & 0xFF;
+      }
     }
   }
 
