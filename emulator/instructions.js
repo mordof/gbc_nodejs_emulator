@@ -90,27 +90,138 @@ instructionSet[0x7C] = ['LD A H', 0, () => { ld_register_register('a', 'h') }]
 instructionSet[0x7D] = ['LD A L', 0, () => { ld_register_register('a', 'l') }]
 instructionSet[0x7E] = ['LD A (HL)', 0, () => { ld_register_memregister_byte('a', 'hl') }]
 instructionSet[0x7F] = ['LD A A', 0, () => { ld_register_register('a', 'a') }]
-instructionSet[0xAF] = ['XOR A', 0, xor_a]
+instructionSet[0x80] = ['ADD A B', 0, () => { add_register_byte_to_a('b') }]
+instructionSet[0x81] = ['ADD A C', 0, () => { add_register_byte_to_a('c') }]
+instructionSet[0x82] = ['ADD A D', 0, () => { add_register_byte_to_a('d') }]
+instructionSet[0x83] = ['ADD A E', 0, () => { add_register_byte_to_a('e') }]
+instructionSet[0x84] = ['ADD A H', 0, () => { add_register_byte_to_a('h') }]
+instructionSet[0x85] = ['ADD A L', 0, () => { add_register_byte_to_a('l') }]
+instructionSet[0x86] = ['ADD A (HL)', 0, () => { add_memhl_byte_to_a() }]
+instructionSet[0x87] = ['ADD A A', 0, () => { add_register_byte_to_a('a') }]
+instructionSet[0x88] = ['ADC A B', 0, () => { add_register_byte_plus_carry_to_a('b') }]
+instructionSet[0x89] = ['ADC A C', 0, () => { add_register_byte_plus_carry_to_a('c') }]
+instructionSet[0x8A] = ['ADC A D', 0, () => { add_register_byte_plus_carry_to_a('d') }]
+instructionSet[0x8B] = ['ADC A E', 0, () => { add_register_byte_plus_carry_to_a('e') }]
+instructionSet[0x8C] = ['ADC A H', 0, () => { add_register_byte_plus_carry_to_a('h') }]
+instructionSet[0x8D] = ['ADC A L', 0, () => { add_register_byte_plus_carry_to_a('l') }]
+instructionSet[0x8E] = ['ADC A (HL)', 0, () => { add_memhl_byte_plus_carry_to_a() }]
+instructionSet[0x8F] = ['ADC A A', 0, () => { add_register_byte_plus_carry_to_a('a') }]
+instructionSet[0x90] = ['SUB B', 0, () => { sub_register_byte_from_a('b') }]
+instructionSet[0x91] = ['SUB C', 0, () => { sub_register_byte_from_a('c') }]
+instructionSet[0x92] = ['SUB D', 0, () => { sub_register_byte_from_a('d') }]
+instructionSet[0x93] = ['SUB E', 0, () => { sub_register_byte_from_a('e') }]
+instructionSet[0x94] = ['SUB H', 0, () => { sub_register_byte_from_a('h') }]
+instructionSet[0x95] = ['SUB L', 0, () => { sub_register_byte_from_a('l') }]
+instructionSet[0x96] = ['SUB (HL)', 0, () => { sub_memhl_byte_from_a() }]
+instructionSet[0x97] = ['SUB A', 0, () => { sub_register_byte_from_a('a') }]
+instructionSet[0x98] = ['SBC A B', 0, () => { sub_register_byte_and_carry_from_a('b') }]
+instructionSet[0x99] = ['SBC A C', 0, () => { sub_register_byte_and_carry_from_a('c') }]
+instructionSet[0x9A] = ['SBC A D', 0, () => { sub_register_byte_and_carry_from_a('d') }]
+instructionSet[0x9B] = ['SBC A E', 0, () => { sub_register_byte_and_carry_from_a('e') }]
+instructionSet[0x9C] = ['SBC A H', 0, () => { sub_register_byte_and_carry_from_a('h') }]
+instructionSet[0x9D] = ['SBC A L', 0, () => { sub_register_byte_and_carry_from_a('l') }]
+instructionSet[0x9E] = ['SBC A (HL)', 0, () => { sub_memhl_byte_and_carry_from_a() }]
+instructionSet[0x9F] = ['SBC A A', 0, () => { sub_register_byte_and_carry_from_a('a') }]
+instructionSet[0xA0] = ['AND B', 0, () => { and_register('b') }]
+instructionSet[0xA1] = ['AND C', 0, () => { and_register('c') }]
+instructionSet[0xA2] = ['AND D', 0, () => { and_register('d') }]
+instructionSet[0xA3] = ['AND E', 0, () => { and_register('e') }]
+instructionSet[0xA4] = ['AND H', 0, () => { and_register('h') }]
+instructionSet[0xA5] = ['AND L', 0, () => { and_register('l') }]
+instructionSet[0xA6] = ['AND (HL)', 0, () => { and_memhl() }]
+instructionSet[0xA7] = ['AND A', 0, () => { and_register('a') }]
+instructionSet[0xA8] = ['XOR B', 0, () => { xor_register('b') }]
+instructionSet[0xA9] = ['XOR C', 0, () => { xor_register('c') }]
+instructionSet[0xAA] = ['XOR D', 0, () => { xor_register('d') }]
+instructionSet[0xAB] = ['XOR E', 0, () => { xor_register('e') }]
+instructionSet[0xAC] = ['XOR H', 0, () => { xor_register('h') }]
+instructionSet[0xAD] = ['XOR L', 0, () => { xor_register('l') }]
+instructionSet[0xAE] = ['XOR (HL)', 0, () => { xor_memhl() }]
+instructionSet[0xAF] = ['XOR A', 0, () => { xor_register('a') }]
+instructionSet[0xB0] = ['OR B', 0, () => { or_register('b') }]
+instructionSet[0xB1] = ['OR C', 0, () => { or_register('c') }]
+instructionSet[0xB2] = ['OR D', 0, () => { or_register('d') }]
+instructionSet[0xB3] = ['OR E', 0, () => { or_register('e') }]
+instructionSet[0xB4] = ['OR H', 0, () => { or_register('h') }]
+instructionSet[0xB5] = ['OR L', 0, () => { or_register('l') }]
+instructionSet[0xB6] = ['OR (HL)', 0, () => { or_memhl() }]
+instructionSet[0xB7] = ['OR A', 0, () => { or_register('a') }]
 instructionSet[0xC1] = ['POP BC', 0, () => { pop_short_stack_to_register('bc') }]
 instructionSet[0xC3] = ['JP', 2, jp_xx]
 instructionSet[0xC5] = ['PUSH BC', 0, () => { push_short_register_to_stack('bc') }]
+instructionSet[0xC6] = ['ADD A', 1, (x) => { add_byte_to_a(x) }]
+instructionSet[0xCE] = ['ADC A', 1, (x) => { add_byte_plus_carry_to_a(x) }]
 instructionSet[0xD1] = ['POP DE', 0, () => { pop_short_stack_to_register('de') }]
 instructionSet[0xD5] = ['PUSH DE', 0, () => { push_short_register_to_stack('de') }]
+instructionSet[0xD6] = ['SUB', 1, (x) => { sub_byte_from_a(x) }]
+instructionSet[0xDE] = ['SBC A' 1, (x) => { sub_byte_and_carry_from_a(x) }]
 instructionSet[0xE0] = ['LDH (0xFF00 + %x) A', 1, (x) => { ld_memxx_register_byte(0xFF00 + x, 'a') }]
 instructionSet[0xE1] = ['POP HL', 0, () => { pop_short_stack_to_register('hl') }]
 instructionSet[0xE2] = ['LD (0xFF00 + C) A', 0, () => { ld_memxx_register_byte(0xFF00 + cpu.register.c, 'a') }]
 instructionSet[0xE5] = ['PUSH HL', 0, () => { push_short_register_to_stack('hl') }]
+instructionSet[0xE6] = ['AND E', 1, (x) => { and_byte(x) }]
 instructionSet[0xEA] = ['LD (%xx) A', 2, (x, y) => { ld_memxx_register_byte(bytesToShort(x, y), 'a') }]
+instructionSet[0xEE] = ['XOR', 1, (x) => { xor_byte(x) }]
 instructionSet[0xF0] = ['LDH A (0xFF00 + %x)', 1, (x) => { ld_register_memxx_short('a', 0xFF00 + x) }]
 instructionSet[0xF1] = ['POP AF', 0, () => { pop_short_stack_to_register('af') }]
 instructionSet[0xF2] = ['LD A (0xFF00 + C)', 0, () => { ld_register_memxx_short('a', 0xFF00 + cpu.register.c) }]
 instructionSet[0xF3] = ['DI', 0, di]
 instructionSet[0xF5] = ['PUSH AF', 0, () => { push_short_register_to_stack('af') }]
+instructionSet[0xF6] = ['OR', 1, (x) => { or_byte(x) }]
 instructionSet[0xF8] = ['LDHL SP', 1, (x) => { ld_register_short('hl', cpu.math.add_sp_x(cpu.register.sp, x)) }]
 instructionSet[0xF9] = ['LD SP HL', 0, () => { ld_register_register('sp', 'hl') }]
 instructionSet[0xFA] = ['LD A (%xx)', 2, (x, y) => { ld_register_memxx_bytes('a', x, y) }]
 instructionSet[0xFE] = ['CP A', 1, cp_a_x]
 instructionSet[0xFF] = ['RST 0x38', 0, rst_38]
+
+function math_op_set_a(op, val){
+  cpu.register.a = cpu.math[op](cpu.register.a, val)
+}
+
+// Bitwise ^ Register A with Provided Register. Results in A
+function xor_register(register){
+  math_op_set_a('xor', cpu.register[register])
+}
+
+// Bitwise ^ Register A with Memory Location HL. Results in A
+function xor_memhl(){
+  math_op_set_a('xor', mem.readByte(cpu.register.hl))
+}
+
+// Bitwise ^ Register A with Byte. Results in A
+function xor_byte(x){
+  math_op_set_a('xor', byte)
+}
+
+// Bitwise | Register A with Provided Register. Results in A
+function or_register(register){
+  math_op_set_a('or', cpu.register[register])
+}
+
+// Bitwise | Register A with Memory Location HL. Results in A
+function or_memhl(){
+  math_op_set_a('or', mem.readByte(cpu.register.hl))
+}
+
+// Bitwise | Register A with Byte. Results in A
+function or_byte(x){
+  math_op_set_a('or', byte)
+}
+
+// Bitwise & Register A with Provided Register. Results in A
+function and_register(register){
+  math_op_set_a('and', cpu.register[register])
+}
+
+// Bitwise & Reigster A with Memory Location HL. Results in A
+function and_memhl(){
+  math_op_set_a('and', mem.readByte(cpu.register.hl))
+}
+
+// Bitwise & Register A with Byte. Results in A
+function and_byte(x){
+  math_op_set_a('and', byte)
+}
 
 // Populates Byte Register with Memory Read (Short Arg)
 function ld_register_memxx_short(registerDest, short){
@@ -177,8 +288,73 @@ function jr_z_x(byte){
   }
 }
 
-function xor_a(){
-  cpu.register.a = cpu.math.xor(cpu.register.a, cpu.register.a)
+function add(x){
+  math_op_set_a('add',  x)
+}
+
+// Add Register + Carry Flag to A. Results in A
+function add_register_byte_plus_carry_to_a(register){
+  // using | 0 pipe at the end to force the True or False value of Carry Flag to a 1 or 0
+  add(cpu.register[register] + (cpu.register.f.c | 0))
+}
+
+// Add Memory HL + Carry Flag to A. Results in A
+function add_memhl_byte_plus_carry_to_a(){
+  add(mem.readByte(cpu.register.hl) + (cpu.register.f.c | 0))
+}
+
+// Add Byte + Carry Flag to A. Results in A
+function add_byte_plus_carry_to_a(byte){
+  add(byte + (cpu.register.f.c | 0))
+}
+
+// Add Register to A. Results in A
+function add_register_byte_to_a(register){
+  add(cpu.register[register])
+}
+
+// Add Memory HL to A. Results in A
+function add_memhl_byte_to_a(){
+  add(mem.readByte(cpu.register.hl))
+}
+
+// Add Byte to A. Results in A
+function add_byte_to_a(byte){
+  add(byte)
+}
+
+function sub(x){
+  math_op_set_a('sub', x)
+}
+
+// Subtract Register and Carry from A. Results in A
+function sub_register_byte_and_carry_from_a(register){
+  sub(cpu.register[register] + (cpu.register.f.c | 0))
+}
+
+// Subtract Memory HL And Carry from A. Results in A
+function sub_memhl_byte_and_carry_from_a(){
+  sub(mem.readByte(cpu.register.hl) + (cpu.register.f.c | 0))
+}
+
+// Subtract Byte and Carry from A. Results in A
+function sub_byte_and_carry_from_a(byte){
+  sub(byte + (cpu.register.f.c | 0))
+}
+
+// Subtract Register from A. Results in A
+function sub_register_byte_from_a(register){
+  sub(cpu.register[register])
+}
+
+// Subtract Memory HL from A. Results in A
+function sub_memhl_byte_from_a(){
+  sub(mem.readByte(cpu.register.hl))
+}
+
+// Subtract Byte from A. Results in A
+function sub_byte_from_a(byte){
+  sub(byte)
 }
 
 function jp_xx(byte, byte2){

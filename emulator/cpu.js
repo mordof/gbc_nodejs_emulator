@@ -70,6 +70,30 @@ class CPU {
 
         return res;
       },
+      and(x, y){
+        var res = x & y;
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 1,
+          c: 0
+        }
+
+        return res
+      },
+      or(x, y){
+        var res = x | y;
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 0,
+          c: 0
+        }
+
+        return res
+      },
       signByte(x){
         // stupid way of converting to signed byte for now.
         self.signingArr[0] = x;
