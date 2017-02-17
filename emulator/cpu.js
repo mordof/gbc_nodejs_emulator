@@ -22,55 +22,59 @@ class CPU {
 
     this.math = {
       add_sp_x(SP, x){
-        var res = SP + x;
+        var decRes = SP + x;
+        var res = self.signByte(decRes)
 
         cpu.register.f = {
           z: 0,
           n: 0,
           h: (SP & 0xF) + (x & 0xF) > 0xF,
-          c: res > 0xFF
+          c: decRes > 0xFF
         }
 
         return res
       },
       add(x, y){
-        var res = x + y;
+        var decRes = x + y;
+        var res = self.signByte(decRes)
 
         cpu.register.f = {
           z: res === 0 || (self.lastIsCP ? x === y : false),
           n: 0,
           h: (x & 0xF) + (y & 0xF) > 0xF,
-          c: res > 0xFF || (self.lastIsCP ? x < y : false)
+          c: decRes > 0xFF || (self.lastIsCP ? x < y : false)
         }
 
         return res
       },
       add_16(x, y){
-        var res = x + y
+        var decRes = x + y
+        var res = self.signByte(decRes)
 
         cpu.register.f = {
           z: cpu.register.f.z,
           n: 0,
           h: (x & 0xFFF) + (y & 0xFFF) > 0xFFF,
-          c: res > 0xFFFF
+          c: decRes > 0xFFFF
         }
 
         return res
       },
       subtract(A, y){
-        var res = A - y
+        var decRes = A - y
+        var res = self.signByte(decRes)
 
         cpu.register.f = {
           z: res === 0 || (self.lastIsCP ? A === y : false),
           n: 1,
           h: (A & 0xF) - (y & 0xF) < 0x0,
-          c: res < 0x0 || (self.lastIsCP ? A === y : false)
+          c: decRes < 0x0 || (self.lastIsCP ? A === y : false)
         }
 
         return res
       },
       xor(n, x){
-        var res = n ^ x;
+        var res = self.signByte(n ^ x)
 
         cpu.register.f = {
           z: res === 0,
@@ -82,7 +86,7 @@ class CPU {
         return res;
       },
       and(x, y){
-        var res = x & y;
+        var res = self.signByte(x & y)
 
         cpu.register.f = {
           z: res === 0,
@@ -94,7 +98,7 @@ class CPU {
         return res
       },
       or(x, y){
-        var res = x | y;
+        var res = self.signByte(x | y)
 
         cpu.register.f = {
           z: res === 0,
@@ -106,7 +110,7 @@ class CPU {
         return res
       },
       inc(x){
-        var res = x + 1
+        var res = self.signByte(x + 1)
 
         cpu.register.f = {
           z: res === 0,
@@ -118,7 +122,7 @@ class CPU {
         return res
       },
       dec(x){
-        var res = x - 1
+        var res = self.signByte(x - 1)
 
         cpu.register.f = {
           z: res === 0,
@@ -147,7 +151,21 @@ class CPU {
         return res;
       },
       bcd_pack(x){
-        // do all sorts of funky stuff to make a packed 8 bit BCD
+        var lowNib = x % 10
+        var highNib = ((x / 10) | 0) % 10
+
+        var decRes = (highNib << 4) | lowNib
+
+        var res = self.signByte(decRes)
+
+        cpu.register.f = {
+          z: res === 0,
+          n: cpu.register.f.n,
+          h: 0,
+          c: decRes > 0xFF
+        }
+
+        return res
       }
     }
 
