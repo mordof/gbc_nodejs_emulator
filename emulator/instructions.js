@@ -188,6 +188,7 @@ var instructionSet = {
   0xE2: ['LD (0xFF00 + C) A',   0, ()      => { ld_memxx_register_byte(0xFF00 + cpu.register.c, 'a')               }],
   0xE5: ['PUSH HL',             0, ()      => { push_short_register_to_stack('hl')                                 }],
   0xE6: ['AND E',               1, ()      => { and_byte()                                                         }],
+  0xE8: ['ADD SP',              1, (x)     => { add_sp_x_signed_to_register_short('sp', 'sp', x)                   }],
   0xEA: ['LD (%xx) A',          2, (x, y)  => { ld_memxx_register_byte(bytesToShort(x, y), 'a')                    }],
   0xEE: ['XOR',                 1, ()      => { xor_byte()                                                         }],
   0xF0: ['LDH A (0xFF00 + %x)', 1, (x)     => { ld_register_memxx_short('a', 0xFF00 + x)                           }],
@@ -196,11 +197,15 @@ var instructionSet = {
   0xF3: ['DI',                  0, ()      => { di()                                                               }],
   0xF5: ['PUSH AF',             0, ()      => { push_short_register_to_stack('af')                                 }],
   0xF6: ['OR',                  1, ()      => { or_byte()                                                          }],
-  0xF8: ['LDHL SP',             1, (x)     => { ld_register_short('hl', cpu.math.add_sp_x(cpu.register.sp, x))     }],
+  0xF8: ['LDHL SP',             1, (x)     => { add_sp_x_signed_to_register_short('hl', 'sp', x)                   }],
   0xF9: ['LD SP HL',            0, ()      => { ld_register_register('sp', 'hl')                                   }],
   0xFA: ['LD A (%xx)',          2, (x, y)  => { ld_register_memxx_bytes('a', x, y)                                 }],
   0xFE: ['CP A',                1, ()      => { cp_a_x()                                                           }],
   0xFF: ['RST 0x38',            0, ()      => { rst_38()                                                           }]
+}
+
+function add_sp_x_signed_to_register_short(registerDest, registerSrc, x){
+  ld_register_short(registerDest, cpu.math.add_sp_x(cpu.register[registerSrc], cpu.math.signByte(x)))
 }
 
 function add_register_short_to_hl(register){

@@ -20,8 +20,6 @@ class CPU {
     }
 
     this.math = {
-      // reserved for use with OpCode F8 (LDHL SP N)
-      // See pg. 77 of GB PDF for details.
       add_sp_x(SP, x){
         var res = SP + x;
 
