@@ -2,48 +2,56 @@
 
 // format for each instructionSet item:
 // Instruction, byteCount (how many arg bytes), funciton ref
-var instructionSet = {
+var InstructionSet = {
   0x00: ['NOP',                 0, ()      => {                                                                    }],
   0x01: ['LD BC',               2, (x, y)  => { ld_register_xx('bc', x, y)                                         }],
   0x02: ['LD (BC) A',           0, ()      => { ld_memregister_register_byte('bc', 'a')                            }],
+  0x03: ['INC BC',              0, ()      => { cpu.register.bc++; /* doesn't update flags like inc_register */    }],
   0x04: ['INC B',               0, ()      => { inc_register('b')                                                  }],
   0x05: ['DEC B',               0, ()      => { dec_register('b')                                                  }],
   0x06: ['LD B',                1, (x)     => { ld_register_x('d', x)                                              }],
   0x08: ['LD (%xx) SP',         2, (x, y)  => { ld_memxx_register_short(bytesToShort(x, y), 'sp')                  }],
   0x09: ['ADD HL BC',           0, ()      => { add_register_short_to_hl('bc')                                     }],
   0x0A: ['LD A (BC)',           0, ()      => { ld_register_memregister_byte('a', 'bc')                            }],
+  0x0B: ['DEC BC',              0, ()      => { cpu.register.bc--; /* doesn't update flags like dec_register */    }],
   0x0C: ['INC C',               0, ()      => { inc_register('c')                                                  }],
   0x0D: ['DEC C',               0, ()      => { dec_register('c')                                                  }],
   0x0E: ['LD C',                1, (x)     => { ld_register_x('c', x)                                              }],
   0x11: ['LD DE',               2, (x, y)  => { ld_register_xx('de', x, y)                                         }],
   0x12: ['LD (DE) A',           0, ()      => { ld_memregister_register_byte('de', 'a')                            }],
+  0x13: ['INC DE',              0, ()      => { cpu.register.de++; /* doesn't update flags like inc_register */    }],
   0x14: ['INC D',               0, ()      => { inc_register('d')                                                  }],
   0x15: ['DEC D',               0, ()      => { dec_register('d')                                                  }],
   0x16: ['LD D',                1, (x)     => { ld_register_x('d', x)                                              }],
   0x18: ['JR',                  1, (x)     => { jr_x(x)                                                            }],
   0x19: ['ADD HL DE',           0, ()      => { add_register_short_to_hl('de')                                     }],
   0x1A: ['LD A (DE)',           0, ()      => { ld_register_memregister_byte('a', 'de')                            }],
+  0x1B: ['DEC DE',              0, ()      => { cpu.register.de--; /* doesn't update flags like dec_register */    }],
   0x1C: ['INC E',               0, ()      => { inc_register('e')                                                  }],
   0x1D: ['DEC E',               0, ()      => { dec_register('e')                                                  }],
   0x1E: ['LD E',                1, (x)     => { ld_register_x('e', x)                                              }],
   0x21: ['LD HL',               2, (x, y)  => { ld_register_xx('hl', x, y)                                         }],
   0x22: ['LDI (HL) A',          0, ()      => { ld_memregister_register_byte('hl', 'a'); cpu.register.hl++;        }],
+  0x23: ['INC HL',              0, ()      => { cpu.register.hl++; /* doesn't update flags like inc_register */    }],
   0x24: ['INC H',               0, ()      => { inc_register('h')                                                  }],
   0x25: ['DEC H',               0, ()      => { dec_register('h')                                                  }],
   0x26: ['LD H',                1, (x)     => { ld_register_x('h', x)                                              }],
   0x28: ['JR Z',                1, (x)     => { jr_z_x(x)                                                          }],
   0x29: ['ADD HL HL',           0, ()      => { add_register_short_to_hl('hl')                                     }],
   0x2A: ['LDI A (HL)',          0, ()      => { ld_register_memregister_byte('a', 'hl'); cpu.register.hl++;        }],
+  0x2B: ['DEC HL',              0, ()      => { cpu.register.hl--; /* doesn't update flags like dec_register */    }],
   0x2C: ['INC L',               0, ()      => { inc_register('l')                                                  }],
   0x2D: ['DEC L',               0, ()      => { dec_register('l')                                                  }],
   0x2E: ['LD L',                1, (x)     => { ld_register_x('l', x)                                              }],
   0x31: ['LD SP',               2, (x, y)  => { ld_register_xx('sp', x, y)                                         }],
   0x32: ['LDD (HL) A',          0, ()      => { ld_memregister_register_byte('hl', 'a'); cpu.register.hl--;        }],
+  0x33: ['INC SP',              0, ()      => { cpu.register.sp++; /* doesn't update flags like inc_register */    }],
   0x34: ['INC (HL)',            0, ()      => { inc_memhl()                                                        }],
   0x35: ['DEC (HL)',            0, ()      => { dec_memhl()                                                        }],
   0x36: ['LD (HL)',             1, (x)     => { ld_memregister_x('hl', x)                                          }],
   0x39: ['ADD HL SP',           0, ()      => { add_register_short_to_hl('sp')                                     }],
   0x3A: ['LDD A (HL)',          0, ()      => { ld_register_memregister_byte('a', 'hl'); cpu.register.hl--;        }],
+  0x3B: ['DEC SP',              0, ()      => { cpu.register.sp--; /* doesn't update flags like dec_register */    }],
   0x3C: ['INC A',               0, ()      => { inc_register('a')                                                  }],
   0x3D: ['DEC A',               0, ()      => { dec_register('a')                                                  }],
   0x3E: ['LD A',                1, (x)     => { ld_register_x('a', x)                                              }],
@@ -178,6 +186,7 @@ var instructionSet = {
   0xC3: ['JP',                  2, (x, y)  => { jp_xx(x, y)                                                        }],
   0xC5: ['PUSH BC',             0, ()      => { push_short_register_to_stack('bc')                                 }],
   0xC6: ['ADD A',               1, (x)     => { add_byte_to_a(x)                                                   }],
+  0xCB: /* This points to another instruction set. If we find an instruction here... figure out wth is going on */ '',
   0xCE: ['ADC A',               1, (x)     => { add_byte_plus_carry_to_a(x)                                        }],
   0xD1: ['POP DE',              0, ()      => { pop_short_stack_to_register('de')                                  }],
   0xD5: ['PUSH DE',             0, ()      => { push_short_register_to_stack('de')                                 }],
@@ -200,8 +209,22 @@ var instructionSet = {
   0xF8: ['LDHL SP',             1, (x)     => { add_sp_x_signed_to_register_short('hl', 'sp', x)                   }],
   0xF9: ['LD SP HL',            0, ()      => { ld_register_register('sp', 'hl')                                   }],
   0xFA: ['LD A (%xx)',          2, (x, y)  => { ld_register_memxx_bytes('a', x, y)                                 }],
-  0xFE: ['CP A',                1, (x)     => { cp_a_byte(x)                                                          }],
+  0xFE: ['CP A',                1, (x)     => { cp_a_byte(x)                                                       }],
   0xFF: ['RST 0x38',            0, ()      => { rst_38()                                                           }]
+}
+
+var CBInstructionSet = {
+  0x30: ['SWAP B',              0, ()      => { swap_nibbles('b')                                                  }],
+  0x31: ['SWAP C',              0, ()      => { swap_nibbles('c')                                                  }],
+  0x32: ['SWAP D',              0, ()      => { swap_nibbles('d')                                                  }],
+  0x33: ['SWAP E',              0, ()      => { swap_nibbles('e')                                                  }],
+  0x34: ['SWAP H',              0, ()      => { swap_nibbles('h')                                                  }],
+  0x35: ['SWAP L',              0, ()      => { swap_nibbles('l')                                                  }],
+  0x37: ['SWAP A',              0, ()      => { swap_nibbles('a')                                                  }],
+}
+
+function swap_nibbles(register){
+  cpu.register[register] = cpu.math.swapNibbles(cpu.register[register])
 }
 
 function add_sp_x_signed_to_register_short(registerDest, registerSrc, x){

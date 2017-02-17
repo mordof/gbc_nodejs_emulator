@@ -133,6 +133,18 @@ class CPU {
         // stupid way of converting to signed byte for now.
         self.signingArr[0] = x;
         return self.signingArr[0]
+      },
+      swapNibbles(x){
+        var res = ((x & 0xF0) >> 8) + ((x & 0xF) << 8)
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 0,
+          c: 0
+        }
+
+        return res;
       }
     }
 
@@ -259,7 +271,16 @@ class CPU {
         this.lastIsCP = true;
 
       // grab the instruction implementation details for the current OpCode
-      instruction = instructionSet[opCode]
+      // if opCode is CB, there's a secondary instruction list. at least we
+      // aren't on an actual Z80, as there's a whole bunch more.
+      if(opCode === 0xCB){
+        this.register.pc += 1
+        opCode = this.rom[this.register.pc]
+        instruction = CBInstructionSet[opCode]
+      } else {
+        instruction = InstructionSet[opCode]
+      }
+
       if(instruction){
         this.execInstruction(instruction)
       } else {
