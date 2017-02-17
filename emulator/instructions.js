@@ -1,4 +1,8 @@
-// 0x0 - 0xFF inclusive ends up being 0x100
+
+/* next instruction opcode I need to implement from PDF: DAA (0x27)
+pg. 95.
+the actual cpu implementation isn't complete yet.
+*/
 
 // format for each instructionSet item:
 // Instruction, byteCount (how many arg bytes), funciton ref
@@ -36,6 +40,7 @@ var InstructionSet = {
   0x24: ['INC H',               0, ()      => { inc_register('h')                                                  }],
   0x25: ['DEC H',               0, ()      => { dec_register('h')                                                  }],
   0x26: ['LD H',                1, (x)     => { ld_register_x('h', x)                                              }],
+  0x27: ['DAA',                 0, ()      => { bcd_pack_a()                                                       }],
   0x28: ['JR Z',                1, (x)     => { jr_z_x(x)                                                          }],
   0x29: ['ADD HL HL',           0, ()      => { add_register_short_to_hl('hl')                                     }],
   0x2A: ['LDI A (HL)',          0, ()      => { ld_register_memregister_byte('a', 'hl'); cpu.register.hl++;        }],
@@ -220,7 +225,16 @@ var CBInstructionSet = {
   0x33: ['SWAP E',              0, ()      => { swap_nibbles('e')                                                  }],
   0x34: ['SWAP H',              0, ()      => { swap_nibbles('h')                                                  }],
   0x35: ['SWAP L',              0, ()      => { swap_nibbles('l')                                                  }],
+  0x36: ['SWAP (HL)',           0, ()      => { swap_nibbles_memhl()                                               }],
   0x37: ['SWAP A',              0, ()      => { swap_nibbles('a')                                                  }],
+}
+
+function bcd_pack_a(){
+  cpu.register.a = cpu.math.bcd_pack(cpu.register.a)
+}
+
+function swap_nibbles_memhl(){
+  mem.writeByte(cpu.register.hl, cpu.math.swapNibbles(mem.readByte(cpu.register.hl)))
 }
 
 function swap_nibbles(register){

@@ -32,7 +32,7 @@ class Memory {
     this.writeByte(address, val & 0x00FF)
     // write the second byte to the address just after
     // the address specified.
-    this.writeByte(address + 1, (val & 0xFF00) >> 8)
+    this.writeByte(address + 1, (val & 0xFF00) >>> 8)
   }
 
   readStack(){

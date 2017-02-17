@@ -135,7 +135,7 @@ class CPU {
         return self.signingArr[0]
       },
       swapNibbles(x){
-        var res = ((x & 0xF0) >> 8) + ((x & 0xF) << 8)
+        var res = ((x & 0xF0) >>> 8) + ((x & 0xF) << 8)
 
         cpu.register.f = {
           z: res === 0,
@@ -145,6 +145,9 @@ class CPU {
         }
 
         return res;
+      },
+      bcd_pack(x){
+        // do all sorts of funky stuff to make a packed 8 bit BCD
       }
     }
 
@@ -206,7 +209,7 @@ class CPU {
 
       get af(){ return (this.data[0] << 8) + this.data[5] },
       set af(v){
-        this.data[0] = (v & 0xFF00) >> 8;
+        this.data[0] = (v & 0xFF00) >>> 8;
         // the least significant byte is always 0000 for register F
         // in the GameBoy Z80 implementation, regardless what gets
         // written to it.
@@ -215,7 +218,7 @@ class CPU {
 
       get bc(){ return (this.data[1] << 8) + this.data[2] },
       set bc(v){
-        this.data[1] = (v & 0xFF00) >> 8;
+        this.data[1] = (v & 0xFF00) >>> 8;
         this.data[2] = v & 0xFF;
       },
 
@@ -225,13 +228,13 @@ class CPU {
         return (this.data[3] << 8) + this.data[4];
       },
       set de(v){
-        this.data[3] = (v & 0xFF00) >> 8;
+        this.data[3] = (v & 0xFF00) >>> 8;
         this.data[4] = v & 0xFF;
       },
 
       get hl(){ return (this.data[6] << 8) + this.data[7] },
       set hl(v){
-        this.data[6] = (v & 0xFF00) >> 8;
+        this.data[6] = (v & 0xFF00) >>> 8;
         this.data[7] = v & 0xFF;
       }
     }
