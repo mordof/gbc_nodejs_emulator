@@ -47,14 +47,14 @@ var configItem = new gui.MenuItem({
   submenu: configMenu
 })
 
-var testItem = new gui.MenuItem({ label: 'Test' })
+var testItem = new gui.MenuItem({ label: 'Stop' })
 
 menu.append(testItem)
 menu.append(configItem);
 
 
 testItem.click = function(){
-  console.log('test clicked');
+  cpu.stopExecution()
 }
 
 gui.Window.get().menu = menu;

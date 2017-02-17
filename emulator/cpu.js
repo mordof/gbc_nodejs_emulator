@@ -10,6 +10,7 @@ class CPU {
     this.signingArr = new Int8Array(1)
     this.interruptsEnabled = true;
     this.disableInterruptQueued = false;
+    this.loopHndl;
 
     var self = this;
 
@@ -224,6 +225,10 @@ class CPU {
     }
   }
 
+  stopExecution(){
+    clearInterval(this.loopHndl)
+  }
+
   queueDisableInterrupts(){
     this.queueDisablingInterrupts = true;
   }
@@ -240,7 +245,7 @@ class CPU {
     var instruction;
     var opCode;
     var interruptsQueuedForDisable = false;
-    var hndl = setInterval(() => {
+    this.loopHndl = setInterval(() => {
       opCode = this.rom[this.register.pc]
       // interrupts can be queued to be disabled after the NEXT instruction.
       // in this case, we check to see if it's been queued by the last
@@ -262,7 +267,7 @@ class CPU {
         console.log(
           `%c${convertShortToHex(this.register.pc)} %c${convertByteToHex(this.rom[this.register.pc])}`,
           'color: #999', 'color: #222');
-        clearInterval(hndl);
+        clearInterval(this.loopHndl);
       }
 
       // after execution, we check if our loop has interrupts queued for disable
