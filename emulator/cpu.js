@@ -21,6 +21,22 @@ class CPU {
       registers: document.querySelector('.registers')
     }
 
+    /*********************************88
+    *
+    *
+    *  ALLLL OF THE SIGNING BEING DONE HERE IS BAD!!!
+    *
+    *  THEY SHOULD ONLY BE CASTED TO UINT8 or UINT16, BUT
+    *  INSTEAD I'M CASTING TO INT8 and INT16 BECAUSE OF A BAD
+    *  DECISION!!!!
+    *
+    *  FIX THIS!!
+    *
+    *
+    *
+    *
+    ************************************/
+
     this.math = {
       add_sp_x(SP, x){
         // this implementation may be bad... SP is a short, but we're
