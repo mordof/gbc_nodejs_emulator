@@ -34,14 +34,26 @@ class CPU {
 
         return res
       },
-      add(A, x){
-        var res = A + x;
+      add(x, y){
+        var res = x + y;
 
         cpu.register.f = {
-          z: res === 0 || (self.lastIsCP ? A === x : false),
+          z: res === 0 || (self.lastIsCP ? x === y : false),
           n: 0,
-          h: (A & 0xF) + (x & 0xF) > 0xF,
-          c: res > 0xFF || (self.lastIsCP ? A < x : false)
+          h: (x & 0xF) + (y & 0xF) > 0xF,
+          c: res > 0xFF || (self.lastIsCP ? x < y : false)
+        }
+
+        return res
+      },
+      add_16(x, y){
+        var res = x + y
+
+        cpu.register.f = {
+          z: cpu.register.f.z,
+          n: 0,
+          h: (x & 0xFFF) + (y & 0xFFF) > 0xFFF,
+          c: res > 0xFFFF
         }
 
         return res
@@ -90,6 +102,30 @@ class CPU {
           n: 0,
           h: 0,
           c: 0
+        }
+
+        return res
+      },
+      inc(x){
+        var res = x + 1
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: (x & 0xF) + 1 > 0xF,
+          c: cpu.register.f.c
+        }
+
+        return res
+      },
+      dec(x){
+        var res = x - 1
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 1,
+          h: (x & 0xF) - 1 < 0x0,
+          c: cpu.register.f.c
         }
 
         return res
@@ -158,7 +194,7 @@ class CPU {
       set pc(v){ this.data[9] = v; this.pcUpdated = true },
 
       get af(){ return (this.data[0] << 8) + this.data[5] },
-      set af(v){ 
+      set af(v){
         this.data[0] = (v & 0xFF00) >> 8;
         // the least significant byte is always 0000 for register F
         // in the GameBoy Z80 implementation, regardless what gets
@@ -183,7 +219,7 @@ class CPU {
       },
 
       get hl(){ return (this.data[6] << 8) + this.data[7] },
-      set hl(v){ 
+      set hl(v){
         this.data[6] = (v & 0xFF00) >> 8;
         this.data[7] = v & 0xFF;
       }
