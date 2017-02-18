@@ -293,7 +293,7 @@ class CPU {
         // setting the bit in the correct location, inverting, and using a mask to get
         // every bit from x except the one that should be reset (sets to 0)
         return cast.uint8(x & ~(1 << bit))
-      }
+      },
       swapNibbles(x){
         var res = ((x & 0xF0) >>> 8) + ((x & 0xF) << 8)
 
