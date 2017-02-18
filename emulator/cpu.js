@@ -180,29 +180,10 @@ class CPU {
           c: 1
         }
       },
-
-      /*****************************
-       *
-       *
-       *  the following 4 rotate functions are implemented (likely)
-       *  incorrectly (possibly some are ok). 
-       *
-       *  Shifting drops the end bits off, and doesn't move them around
-       *  to the other side, where as rotating preserves the end bits;
-       *  whether that means it goes to the carry, and the carry gets pit
-       *  in bit 0, or if bit 7 just gets moved to bit 0.
-       *
-       *  i think the rrc and rlc are incorrect, but rr and rl might be
-       *  correct due to that.
-       *
-       *
-       ******************************/
-
-
       // rotate left (old bit 7 goes into carry)
       rlc(x){
         var bit7 = x & 0b10000000
-        var res = cast.uint8(x << 1)
+        var res = cast.uint8(x << 1) | (bit7 >>> 7)
 
         cpu.register.f = {
           z: res === 0,
@@ -230,7 +211,7 @@ class CPU {
       // rotate right (old bit 0 goes into carry)
       rrc(x){
         var bit0 = x & 0b00000001
-        var res = cast.uint8(x >>> 1)
+        var res = cast.uint8(x >>> 1) | (bit0 << 7)
 
         cpu.register.f = {
           z: res === 0,
