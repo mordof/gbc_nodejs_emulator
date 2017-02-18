@@ -33,7 +33,7 @@ var InstructionSet = {
   0x15: ['DEC D',               0, ()      => { dec_register('d')                                                  }],
   0x16: ['LD D',                1, (x)     => { ld_register_x('d', x)                                              }],
   0x17: ['RLA',                 0, ()      => { rotate_register_byte_left_through_carry('a')                       }],
-  0x18: ['JR',                  1, (x)     => { jr_x(x)                                                            }],
+  0x18: ['JR',                  1, (x)     => { jr_x_signed(x)                                                     }],
   0x19: ['ADD HL DE',           0, ()      => { add_register_short_to_hl('de')                                     }],
   0x1A: ['LD A (DE)',           0, ()      => { ld_register_memregister_byte('a', 'de')                            }],
   0x1B: ['DEC DE',              0, ()      => { cpu.register.de--; /* doesn't update flags like dec_register */    }],
@@ -41,6 +41,7 @@ var InstructionSet = {
   0x1D: ['DEC E',               0, ()      => { dec_register('e')                                                  }],
   0x1E: ['LD E',                1, (x)     => { ld_register_x('e', x)                                              }],
   0x1F: ['RRA',                 0, ()      => { rotate_register_byte_right_through_carry('a')                      }],
+  0x20: ['JR NZ',               1, (x)     => { if(!cpu.register.z){ jr_x_signed(x) }                              }],
   0x21: ['LD HL',               2, (x, y)  => { ld_register_xx('hl', x, y)                                         }],
   0x22: ['LDI (HL) A',          0, ()      => { ld_memregister_register_byte('hl', 'a'); cpu.register.hl++;        }],
   0x23: ['INC HL',              0, ()      => { cpu.register.hl++; /* doesn't update flags like inc_register */    }],
@@ -48,7 +49,7 @@ var InstructionSet = {
   0x25: ['DEC H',               0, ()      => { dec_register('h')                                                  }],
   0x26: ['LD H',                1, (x)     => { ld_register_x('h', x)                                              }],
   0x27: ['DAA',                 0, ()      => { bcd_pack_a()                                                       }],
-  0x28: ['JR Z',                1, (x)     => { jr_z_x(x)                                                          }],
+  0x28: ['JR Z',                1, (x)     => { if(cpu.register.z){ jr_x_signed(x) }                               }],
   0x29: ['ADD HL HL',           0, ()      => { add_register_short_to_hl('hl')                                     }],
   0x2A: ['LDI A (HL)',          0, ()      => { ld_register_memregister_byte('a', 'hl'); cpu.register.hl++;        }],
   0x2B: ['DEC HL',              0, ()      => { cpu.register.hl--; /* doesn't update flags like dec_register */    }],
@@ -56,6 +57,7 @@ var InstructionSet = {
   0x2D: ['DEC L',               0, ()      => { dec_register('l')                                                  }],
   0x2E: ['LD L',                1, (x)     => { ld_register_x('l', x)                                              }],
   0x2F: ['CPL',                 0, ()      => { cpu.register.a = cpu.ops.cpl(cpu.register.a)                       }],
+  0x30: ['JR NC',               1, (x)     => { if(!cpu.register.c){ jr_x_signed(x) }                              }],
   0x31: ['LD SP',               2, (x, y)  => { ld_register_xx('sp', x, y)                                         }],
   0x32: ['LDD (HL) A',          0, ()      => { ld_memregister_register_byte('hl', 'a'); cpu.register.hl--;        }],
   0x33: ['INC SP',              0, ()      => { cpu.register.sp++; /* doesn't update flags like inc_register */    }],
@@ -63,6 +65,7 @@ var InstructionSet = {
   0x35: ['DEC (HL)',            0, ()      => { dec_memhl()                                                        }],
   0x36: ['LD (HL)',             1, (x)     => { ld_memregister_x('hl', x)                                          }],
   0x37: ['SCF',                 0, ()      => { cpu.ops.scf()                                                      }],
+  0x38: ['JR C',                1, (x)     => { if(cpu.register.c){ jr_x_signed(x) }                               }],
   0x39: ['ADD HL SP',           0, ()      => { add_register_short_to_hl('sp')                                     }],
   0x3A: ['LDD A (HL)',          0, ()      => { ld_register_memregister_byte('a', 'hl'); cpu.register.hl--;        }],
   0x3B: ['DEC SP',              0, ()      => { cpu.register.sp--; /* doesn't update flags like dec_register */    }],
@@ -198,36 +201,59 @@ var InstructionSet = {
   0xBD: ['CP L',                0, ()      => { cp_a_register('L')                                                 }],
   0xBE: ['CP (HL)',             0, ()      => { cp_a_memhl()                                                       }],
   0xBF: ['CP A',                0, ()      => { cp_a_register('a')                                                 }],
+  0xC0: ['RET NZ',              0, ()      => { if(!cpu.register.z){ read_stack_and_jump() }                       }],
   0xC1: ['POP BC',              0, ()      => { pop_short_stack_to_register('bc')                                  }],
+  0xC2: ['JP NZ',               2, (x, y)  => { if(!cpu.register.z){ jp_xx(x, y) }                                 }],
   0xC3: ['JP',                  2, (x, y)  => { jp_xx(x, y)                                                        }],
+  0xC4: ['CALL NZ',             2, (x, y)  => { if(!cpu.register.z){ push_pc_to_stack_jump(bytesToShort(x, y)) }   }],
   0xC5: ['PUSH BC',             0, ()      => { push_short_register_to_stack('bc')                                 }],
   0xC6: ['ADD A',               1, (x)     => { add_byte_to_a(x)                                                   }],
+  0xC7: ['RST 0x00',            0, ()      => { push_pc_to_stack_jump(0x00)                                        }],
+  0xC8: ['RET Z',               0, ()      => { if(cpu.register.z){ read_stack_and_jump() }                        }],
+  0xC9: ['RET',                 0, ()      => { read_stack_and_jump()                                              }],
+  0xCA: ['JP Z',                2, (x, y)  => { if(cpu.register.z){ jp_xx(x, y) }                                  }],
   0xCB: /* This points to another instruction set. If we find an instruction here... figure out wth is going on */ '',
+  0xCC: ['CALL Z',              2, (x, y)  => { if(cpu.register.z){ push_pc_to_stack_jump(bytesToShort(x, y)) }    }],
+  0xCD: ['CALL',                2, (x, y)  => { push_pc_to_stack_jump(bytesToShort(x, y))                          }],
   0xCE: ['ADC A',               1, (x)     => { add_byte_plus_carry_to_a(x)                                        }],
+  0xCF: ['RST 0x08',            0, ()      => { push_pc_to_stack_jump(0x08)                                        }],
+  0xD0: ['RET NC',              0, ()      => { if(!cpu.register.c){ read_stack_and_jump() }                       }],
   0xD1: ['POP DE',              0, ()      => { pop_short_stack_to_register('de')                                  }],
+  0xD2: ['JP NC',               2, (x, y)  => { if(!cpu.register.c){ jp_xx(x, y) }                                 }],
+  0xD4: ['CALL NC',             2, (x, y)  => { if(!cpu.register.c){ push_pc_to_stack_jump(bytesToShort(x, y)) }   }],
   0xD5: ['PUSH DE',             0, ()      => { push_short_register_to_stack('de')                                 }],
   0xD6: ['SUB',                 1, (x)     => { sub_byte_from_a(x)                                                 }],
+  0xD7: ['RST 0x10',            0, ()      => { push_pc_to_stack_jump(0x10)                                        }],
+  0xD8: ['RET C',               0, ()      => { if(cpu.register.c){ read_stack_and_jump() }                        }],
+  0xD9: ['RETI',                0, ()      => { read_stack_and_jump(); cpu.enableInterrupts()                      }],
+  0xDA: ['JP C',                2, (x, y)  => { if(cpu.register.c){ jp_xx(x, y) }                                  }],
+  0xDC: ['CALL C',              2, (x, y)  => { if(cpu.register.c){ push_pc_to_stack_jump(bytesToShort(x, y)) }    }],
   0xDE: ['SBC A',               1, (x)     => { sub_byte_and_carry_from_a(x)                                       }],
+  0xDF: ['RST 0x18',            0, ()      => { push_pc_to_stack_jump(0x18)                                        }],
   0xE0: ['LDH (0xFF00 + %x) A', 1, (x)     => { ld_memxx_register_byte(0xFF00 + x, 'a')                            }],
   0xE1: ['POP HL',              0, ()      => { pop_short_stack_to_register('hl')                                  }],
   0xE2: ['LD (0xFF00 + C) A',   0, ()      => { ld_memxx_register_byte(0xFF00 + cpu.register.c, 'a')               }],
   0xE5: ['PUSH HL',             0, ()      => { push_short_register_to_stack('hl')                                 }],
   0xE6: ['AND E',               1, (x)     => { and_byte(x)                                                        }],
+  0xE7: ['RST 0x20',            0, ()      => { push_pc_to_stack_jump(0x20)                                        }],
   0xE8: ['ADD SP',              1, (x)     => { add_sp_x_signed_to_register_short('sp', 'sp', x)                   }],
+  0xE9: ['JP (HL)',             0, ()      => { jp_short(mem.readShort(cpu.register.hl))                           }],
   0xEA: ['LD (%xx) A',          2, (x, y)  => { ld_memxx_register_byte(bytesToShort(x, y), 'a')                    }],
   0xEE: ['XOR',                 1, (x)     => { xor_byte(x)                                                        }],
+  0xEF: ['RST 0x28',            0, ()      => { push_pc_to_stack_jump(0x28)                                        }],
   0xF0: ['LDH A (0xFF00 + %x)', 1, (x)     => { ld_register_memxx_short('a', 0xFF00 + x)                           }],
   0xF1: ['POP AF',              0, ()      => { pop_short_stack_to_register('af')                                  }],
   0xF2: ['LD A (0xFF00 + C)',   0, ()      => { ld_register_memxx_short('a', 0xFF00 + cpu.register.c)              }],
   0xF3: ['DI',                  0, ()      => { cpu.queueDisableInterrupts()                                       }],
   0xF5: ['PUSH AF',             0, ()      => { push_short_register_to_stack('af')                                 }],
   0xF6: ['OR',                  1, (x)     => { or_byte(x)                                                         }],
+  0xF7: ['RST 0x30',            0, ()      => { push_pc_to_stack_jump(0x30)                                        }],
   0xF8: ['LDHL SP',             1, (x)     => { add_sp_x_signed_to_register_short('hl', 'sp', x)                   }],
   0xF9: ['LD SP HL',            0, ()      => { ld_register_register('sp', 'hl')                                   }],
   0xFA: ['LD A (%xx)',          2, (x, y)  => { ld_register_memxx_bytes('a', x, y)                                 }],
   0xFB: ['EI',                  0, ()      => { cpu.queueEnableInterrupts()                                        }],
   0xFE: ['CP A',                1, (x)     => { cp_a_byte(x)                                                       }],
-  0xFF: ['RST 0x38',            0, ()      => { rst_38()                                                           }]
+  0xFF: ['RST 0x38',            0, ()      => { push_pc_to_stack_jump(0x38)                                        }],
 }
 
 var CBInstructionSet = {
@@ -263,6 +289,22 @@ var CBInstructionSet = {
   0x1D: ['RR L',                0, ()      => { rotate_register_byte_right_through_carry('l')                      }],
   0x1E: ['RR (HL)',             0, ()      => { rotate_memhl_byte_right_through_carry()                            }],
   0x1F: ['RR A',                0, ()      => { rotate_register_byte_right_through_carry('a')                      }],
+  0x20: ['SLA B',               0, ()      => { shift_register_byte_left('b')                                      }],
+  0x21: ['SLA C',               0, ()      => { shift_register_byte_left('c')                                      }],
+  0x22: ['SLA D',               0, ()      => { shift_register_byte_left('d')                                      }],
+  0x23: ['SLA E',               0, ()      => { shift_register_byte_left('e')                                      }],
+  0x24: ['SLA H',               0, ()      => { shift_register_byte_left('h')                                      }],
+  0x25: ['SLA L',               0, ()      => { shift_register_byte_left('l')                                      }],
+  0x26: ['SLA (HL)',            0, ()      => { shift_memhl_byte_left()                                            }],
+  0x27: ['SLA A',               0, ()      => { shift_register_byte_left('a')                                      }],
+  0x28: ['SRA B'                0, ()      => { shift_register_byte_right_msb('b')                                 }],
+  0x29: ['SRA C'                0, ()      => { shift_register_byte_right_msb('c')                                 }],
+  0x2A: ['SRA D'                0, ()      => { shift_register_byte_right_msb('d')                                 }],
+  0x2B: ['SRA E'                0, ()      => { shift_register_byte_right_msb('e')                                 }],
+  0x2C: ['SRA H'                0, ()      => { shift_register_byte_right_msb('h')                                 }],
+  0x2D: ['SRA L'                0, ()      => { shift_register_byte_right_msb('l')                                 }],
+  0x2E: ['SRA (HL)',            0, ()      => { shift_memhl_byte_right_msb()                                       }],
+  0x2F: ['SRA A'                0, ()      => { shift_register_byte_right_msb('a')                                 }],
   0x30: ['SWAP B',              0, ()      => { swap_nibbles('b')                                                  }],
   0x31: ['SWAP C',              0, ()      => { swap_nibbles('c')                                                  }],
   0x32: ['SWAP D',              0, ()      => { swap_nibbles('d')                                                  }],
@@ -271,7 +313,91 @@ var CBInstructionSet = {
   0x35: ['SWAP L',              0, ()      => { swap_nibbles('l')                                                  }],
   0x36: ['SWAP (HL)',           0, ()      => { swap_nibbles_memhl()                                               }],
   0x37: ['SWAP A',              0, ()      => { swap_nibbles('a')                                                  }],
+  0x38: ['SRL B',               0, ()      => { shift_register_byte_right('b')                                     }],
+  0x39: ['SRL C',               0, ()      => { shift_register_byte_right('c')                                     }],
+  0x3A: ['SRL D',               0, ()      => { shift_register_byte_right('d')                                     }],
+  0x3B: ['SRL E',               0, ()      => { shift_register_byte_right('e')                                     }],
+  0x3C: ['SRL H',               0, ()      => { shift_register_byte_right('h')                                     }],
+  0x3D: ['SRL L',               0, ()      => { shift_register_byte_right('l')                                     }],
+  0x3E: ['SRL (HL)',            0, ()      => { shift_memhl_byte_right()                                           }],
+  0x3F: ['SRL A',               0, ()      => { shift_register_byte_right('a')                                     }],
+  0x40: ['BIT %x B',            1, (bit)   => { test_register_byte_with_bit('b', bit)                              }],
+  0x41: ['BIT %x C',            1, (bit)   => { test_register_byte_with_bit('c', bit)                              }],
+  0x42: ['BIT %x D',            1, (bit)   => { test_register_byte_with_bit('d', bit)                              }],
+  0x43: ['BIT %x E',            1, (bit)   => { test_register_byte_with_bit('e', bit)                              }],
+  0x44: ['BIT %x H',            1, (bit)   => { test_register_byte_with_bit('h', bit)                              }],
+  0x45: ['BIT %x L',            1, (bit)   => { test_register_byte_with_bit('l', bit)                              }],
+  0x46: ['BIT %x (HL)',         1, (bit)   => { test_memhl_byte_with_bit(bit)                                      }],
+  0x47: ['BIT %x A',            1, (bit)   => { test_register_byte_with_bit('a', bit)                              }],
+  0xC0: ['SET %x B',            1, (bit)   => { set_register_byte_with_bit('b', bit)                               }],
+  0xC1: ['SET %x C',            1, (bit)   => { set_register_byte_with_bit('c', bit)                               }],
+  0xC2: ['SET %x D',            1, (bit)   => { set_register_byte_with_bit('d', bit)                               }],
+  0xC3: ['SET %x E',            1, (bit)   => { set_register_byte_with_bit('e', bit)                               }],
+  0xC4: ['SET %x H',            1, (bit)   => { set_register_byte_with_bit('h', bit)                               }],
+  0xC5: ['SET %x L',            1, (bit)   => { set_register_byte_with_bit('l', bit)                               }],
+  0xC6: ['SET %x (HL)',         1, (bit)   => { set_memhl_byte_with_bit(bit)                                       }],
+  0xC7: ['SET %x A',            1, (bit)   => { set_register_byte_with_bit('a', bit)                               }],
+  0x80: ['RES %x B',            1, (bit)   => { reset_register_byte_with_bit('b', bit)                             }],
+  0x81: ['RES %x C',            1, (bit)   => { reset_register_byte_with_bit('c', bit)                             }],
+  0x82: ['RES %x D',            1, (bit)   => { reset_register_byte_with_bit('d', bit)                             }],
+  0x83: ['RES %x E',            1, (bit)   => { reset_register_byte_with_bit('e', bit)                             }],
+  0x84: ['RES %x H',            1, (bit)   => { reset_register_byte_with_bit('h', bit)                             }],
+  0x85: ['RES %x L',            1, (bit)   => { reset_register_byte_with_bit('l', bit)                             }],
+  0x86: ['RES %x (HL)',         1, (bit)   => { reset_memhl_byte_with_bit(bit)                                     }],
+  0x87: ['RES %x A',            1, (bit)   => { reset_register_byte_with_bit('a', bit)                             }],
 }
+
+function reset_register_byte_with_bit(register, bit){
+  cpu.register[register] = cpu.ops.reset_bit(bit, cpu.register[register])
+}
+
+function reset_memhl_byte_with_bit(bit){
+  mem.writeByte(cpu.register.hl, cpu.ops.reset_bit(bit, mem.readByte(cpu.register.hl)))
+}
+
+function set_register_byte_with_bit(register, bit){
+  cpu.register[register] = cpu.ops.set_bit(bit, cpu.register[register])
+}
+
+function set_memhl_byte_with_bit(bit){
+  mem.writeByte(cpu.register.hl, cpu.ops.set_bit(bit, mem.readByte(cpu.register.hl)))
+}
+
+function test_register_byte_with_bit(register, bit){
+  cpu.ops.test_bit(bit, cpu.register[register])
+}
+
+function test_memhl_byte_with_bit(bit){
+  cpu.ops.test_bit(bit, mem.readByte(cpu.register.hl))
+}
+
+// shift left
+function shift_register_byte_left(register){
+  cpu.register[register] = cpu.ops.sl(cpu.register[register])
+}
+
+function shift_memhl_byte_left(){
+  mem.writeByte(cpu.register.hl, cpu.ops.sl(mem.readByte(cpu.register.hl)))
+}
+
+// shift right
+function shift_register_byte_right(register){
+  cpu.register[register] = cpu.ops.sr(cpu.register[register])
+}
+
+function shift_memhl_byte_right(){
+  mem.writeByte(cpu.register.hl, cpu.ops.sr(mem.readByte(cpu.register.hl)))
+}
+
+// shift right, preserve MSB (Most Significant Bit)
+function shift_register_byte_right_msb(register){
+  cpu.register[register] = cpu.ops.sr_preserve_msb(cpu.register[register])
+}
+
+function shift_memhl_byte_right_msb(){
+  mem.writeByte(cpu.register.hl, cpu.ops.sr_preserve_msb(mem.readByte(cpu.register.hl)))
+}
+
 
 // right rotations, through carry and without
 function rotate_memhl_byte_right_carry(){
@@ -448,14 +574,8 @@ function ld_register_register(registerDest, registerSrc){
   cpu.register[registerDest] = cpu.register[registerSrc]
 }
 
-function jr_x(byte){
+function jr_x_signed(byte){
   cpu.register.pc += cast.int8(byte)
-}
-
-function jr_z_x(byte){
-  if(cpu.register.f.z){
-    cpu.register.pc += cast.int8(byte)
-  }
 }
 
 function add(x){
@@ -527,8 +647,12 @@ function sub_byte_from_a(byte){
   sub(byte)
 }
 
+function jp_short(short){
+  cpu.register.pc = short
+}
+
 function jp_xx(byte, byte2){
-  cpu.register.pc = bytesToShort(byte, byte2)
+  jp_short(bytesToShort(byte, byte2))
 }
 
 function cp_a_memhl(){
@@ -553,7 +677,11 @@ function push_short_register_to_stack(register){
   mem.writeStack(cpu.register[register])
 }
 
-function rst_38(){
+function push_pc_to_stack_jump(byte_or_short){
   mem.writeStack(cpu.register.pc)
-  cpu.register.pc = 0x38
+  cpu.register.pc = byte_or_short
+}
+
+function read_stack_and_jump(){
+  cpu.register.pc = mem.readStack()
 }

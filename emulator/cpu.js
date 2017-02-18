@@ -152,7 +152,7 @@ class CPU {
       },
       // complement X (used in opCode 0x2F)
       cpl(x){
-        var res = cast.uint(x ^ 0xFF)
+        var res = cast.uint(~x)
 
         cpu.register.f = {
           z: cpu.register.f.z,
@@ -189,7 +189,7 @@ class CPU {
           z: res === 0,
           n: 0,
           h: 0,
-          c: bit7
+          c: bit7 >>> 7
         }
 
         return res
@@ -203,7 +203,7 @@ class CPU {
           z: res === 0,
           n: 0,
           h: 0,
-          c: bit7
+          c: bit7 >>> 7
         }
 
         return res
@@ -236,6 +236,64 @@ class CPU {
 
         return res
       },
+      // shift left
+      sl(x){
+        var bit7 = x & 0b10000000
+        var res = cast.uint8(x << 1)
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 0,
+          c: bit7 >>> 7
+        }
+
+        return res
+      },
+      // shift right
+      sr(x){
+        var bit0 = x & 0b00000001
+        var res = cast.uint8(x >>> 1)
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 0,
+          c: bit0
+        }
+
+        return res
+      },
+      sr_preserve_msb(x){
+        var bit0 = x & 0b00000001
+        var res = cast.uint8(x >> 1) // >> preserves MSB, >>> shifts in a 0.
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 0,
+          c: bit0
+        }
+
+        return res
+      },
+      test_bit(bit, x){
+        cpu.register.f = {
+          z: !!(x & (1 << bit)),
+          n: 0,
+          h: 1,
+          c: cpu.register.f.c
+        }
+      },
+      set_bit(bit, x){
+        // just needs to turn the desired bit on. if it's already on, it can stay on.
+        return cast.uint8(x | (1 << bit))
+      },
+      reset_bit(bit, x){
+        // setting the bit in the correct location, inverting, and using a mask to get
+        // every bit from x except the one that should be reset (sets to 0)
+        return cast.uint8(x & ~(1 << bit))
+      }
       swapNibbles(x){
         var res = ((x & 0xF0) >>> 8) + ((x & 0xF) << 8)
 
@@ -308,14 +366,14 @@ class CPU {
       }
     }
 
-    for(const [call, littleEndian, source] of [['Uint8', false, byteRegisters], ['Uint16', true, shortRegisters]]) {
+    for(const [call, littleEndian, source, setMask] of [['Uint8', false, byteRegisters, 0xFF], ['Uint16', true, shortRegisters, 0xFFFF]]) {
       for(const [register, offset] of Object.entries(source)){
         Object.defineProperty(this.register, register, {
           get: function(){
             return this.data[`get${call}`](offset, littleEndian)
           },
           set: function(v){
-            this.data[`set${call}`](offset, v, littleEndian)
+            this.data[`set${call}`](offset, v & setMask, littleEndian)
             self.updateRegisterView()
           }
         })
