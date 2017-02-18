@@ -1,7 +1,8 @@
 
-/* next instruction opcode I need to implement from PDF: DAA (0x27)
-pg. 95.
-the actual cpu implementation isn't complete yet.
+/* next instruction opcode I need to implement from PDF: 
+
+
+
 */
 
 // format for each instructionSet item:
@@ -14,19 +15,23 @@ var InstructionSet = {
   0x04: ['INC B',               0, ()      => { inc_register('b')                                                  }],
   0x05: ['DEC B',               0, ()      => { dec_register('b')                                                  }],
   0x06: ['LD B',                1, (x)     => { ld_register_x('d', x)                                              }],
+  0x07: ['RLCA',                0, ()      => { rotate_register_byte_left_carry('a')                               }],
   0x08: ['LD (%xx) SP',         2, (x, y)  => { ld_memxx_register_short(bytesToShort(x, y), 'sp')                  }],
   0x09: ['ADD HL BC',           0, ()      => { add_register_short_to_hl('bc')                                     }],
+  0x10: ['STOP',                1, (_)     => { cpu.stopCPU() /* opCode 10 00... ? */                              }],
   0x0A: ['LD A (BC)',           0, ()      => { ld_register_memregister_byte('a', 'bc')                            }],
   0x0B: ['DEC BC',              0, ()      => { cpu.register.bc--; /* doesn't update flags like dec_register */    }],
   0x0C: ['INC C',               0, ()      => { inc_register('c')                                                  }],
   0x0D: ['DEC C',               0, ()      => { dec_register('c')                                                  }],
   0x0E: ['LD C',                1, (x)     => { ld_register_x('c', x)                                              }],
+  0x0F: ['RRCA',                0, ()      => { rotate_register_byte_right_carry('a')                              }],
   0x11: ['LD DE',               2, (x, y)  => { ld_register_xx('de', x, y)                                         }],
   0x12: ['LD (DE) A',           0, ()      => { ld_memregister_register_byte('de', 'a')                            }],
   0x13: ['INC DE',              0, ()      => { cpu.register.de++; /* doesn't update flags like inc_register */    }],
   0x14: ['INC D',               0, ()      => { inc_register('d')                                                  }],
   0x15: ['DEC D',               0, ()      => { dec_register('d')                                                  }],
   0x16: ['LD D',                1, (x)     => { ld_register_x('d', x)                                              }],
+  0x17: ['RLA',                 0, ()      => { rotate_register_byte_left_through_carry('a')                       }],
   0x18: ['JR',                  1, (x)     => { jr_x(x)                                                            }],
   0x19: ['ADD HL DE',           0, ()      => { add_register_short_to_hl('de')                                     }],
   0x1A: ['LD A (DE)',           0, ()      => { ld_register_memregister_byte('a', 'de')                            }],
@@ -34,6 +39,7 @@ var InstructionSet = {
   0x1C: ['INC E',               0, ()      => { inc_register('e')                                                  }],
   0x1D: ['DEC E',               0, ()      => { dec_register('e')                                                  }],
   0x1E: ['LD E',                1, (x)     => { ld_register_x('e', x)                                              }],
+  0x1F: ['RRA',                 0, ()      => { rotate_register_byte_right_through_carry('a')                      }],
   0x21: ['LD HL',               2, (x, y)  => { ld_register_xx('hl', x, y)                                         }],
   0x22: ['LDI (HL) A',          0, ()      => { ld_memregister_register_byte('hl', 'a'); cpu.register.hl++;        }],
   0x23: ['INC HL',              0, ()      => { cpu.register.hl++; /* doesn't update flags like inc_register */    }],
@@ -48,18 +54,21 @@ var InstructionSet = {
   0x2C: ['INC L',               0, ()      => { inc_register('l')                                                  }],
   0x2D: ['DEC L',               0, ()      => { dec_register('l')                                                  }],
   0x2E: ['LD L',                1, (x)     => { ld_register_x('l', x)                                              }],
+  0x2F: ['CPL',                 0, ()      => { cpu.register.a = cpu.ops.cpl(cpu.register.a)                       }],
   0x31: ['LD SP',               2, (x, y)  => { ld_register_xx('sp', x, y)                                         }],
   0x32: ['LDD (HL) A',          0, ()      => { ld_memregister_register_byte('hl', 'a'); cpu.register.hl--;        }],
   0x33: ['INC SP',              0, ()      => { cpu.register.sp++; /* doesn't update flags like inc_register */    }],
   0x34: ['INC (HL)',            0, ()      => { inc_memhl()                                                        }],
   0x35: ['DEC (HL)',            0, ()      => { dec_memhl()                                                        }],
   0x36: ['LD (HL)',             1, (x)     => { ld_memregister_x('hl', x)                                          }],
+  0x37: ['SCF',                 0, ()      => { cpu.ops.scf()                                                      }],
   0x39: ['ADD HL SP',           0, ()      => { add_register_short_to_hl('sp')                                     }],
   0x3A: ['LDD A (HL)',          0, ()      => { ld_register_memregister_byte('a', 'hl'); cpu.register.hl--;        }],
   0x3B: ['DEC SP',              0, ()      => { cpu.register.sp--; /* doesn't update flags like dec_register */    }],
   0x3C: ['INC A',               0, ()      => { inc_register('a')                                                  }],
   0x3D: ['DEC A',               0, ()      => { dec_register('a')                                                  }],
   0x3E: ['LD A',                1, (x)     => { ld_register_x('a', x)                                              }],
+  0x3F: ['CCF',                 0, ()      => { cpu.ops.ccf()                                                      }],
   0x40: ['LD B B',              0, ()      => { ld_register_register('b', 'b')                                     }],
   0x41: ['LD B C',              0, ()      => { ld_register_register('b', 'c')                                     }],
   0x42: ['LD B D',              0, ()      => { ld_register_register('b', 'd')                                     }],
@@ -115,6 +124,7 @@ var InstructionSet = {
   0x74: ['LD (HL) H',           0, ()      => { ld_memregister_register_byte('hl', 'h')                            }],
   0x75: ['LD (HL) L',           0, ()      => { ld_memregister_register_byte('hl', 'l')                            }],
   0x77: ['LD (HL) A',           0, ()      => { ld_memregister_register_byte('hl', 'a')                            }],
+  0x76: ['HALT',                0, ()      => { cpu.haltCPU()                                                      }],
   0x78: ['LD A B',              0, ()      => { ld_register_register('a', 'b')                                     }],
   0x79: ['LD A C',              0, ()      => { ld_register_register('a', 'c')                                     }],
   0x7A: ['LD A D',              0, ()      => { ld_register_register('a', 'd')                                     }],
@@ -208,17 +218,50 @@ var InstructionSet = {
   0xF0: ['LDH A (0xFF00 + %x)', 1, (x)     => { ld_register_memxx_short('a', 0xFF00 + x)                           }],
   0xF1: ['POP AF',              0, ()      => { pop_short_stack_to_register('af')                                  }],
   0xF2: ['LD A (0xFF00 + C)',   0, ()      => { ld_register_memxx_short('a', 0xFF00 + cpu.register.c)              }],
-  0xF3: ['DI',                  0, ()      => { di()                                                               }],
+  0xF3: ['DI',                  0, ()      => { cpu.queueDisableInterrupts()                                       }],
   0xF5: ['PUSH AF',             0, ()      => { push_short_register_to_stack('af')                                 }],
   0xF6: ['OR',                  1, (x)     => { or_byte(x)                                                         }],
   0xF8: ['LDHL SP',             1, (x)     => { add_sp_x_signed_to_register_short('hl', 'sp', x)                   }],
   0xF9: ['LD SP HL',            0, ()      => { ld_register_register('sp', 'hl')                                   }],
   0xFA: ['LD A (%xx)',          2, (x, y)  => { ld_register_memxx_bytes('a', x, y)                                 }],
+  0xFB: ['EI',                  0, ()      => { cpu.queueEnableInterrupts()                                        }],
   0xFE: ['CP A',                1, (x)     => { cp_a_byte(x)                                                       }],
   0xFF: ['RST 0x38',            0, ()      => { rst_38()                                                           }]
 }
 
 var CBInstructionSet = {
+  0x00: ['RLC B',               0, ()      => { rotate_register_byte_left_carry('b')                               }],
+  0x01: ['RLC C',               0, ()      => { rotate_register_byte_left_carry('c')                               }],
+  0x02: ['RLC D',               0, ()      => { rotate_register_byte_left_carry('d')                               }],
+  0x03: ['RLC E',               0, ()      => { rotate_register_byte_left_carry('e')                               }],
+  0x04: ['RLC H',               0, ()      => { rotate_register_byte_left_carry('h')                               }],
+  0x05: ['RLC L',               0, ()      => { rotate_register_byte_left_carry('l')                               }],
+  0x06: ['RLC (HL)',            0, ()      => { rotate_memhl_byte_left_carry()                                     }],
+  0x07: ['RLC A',               0, ()      => { rotate_register_byte_left_carry('a')                               }],
+  0x08: ['RRC B',               0, ()      => { rotate_register_byte_right_carry('b')                              }],
+  0x09: ['RRC C',               0, ()      => { rotate_register_byte_right_carry('c')                              }],
+  0x0A: ['RRC D',               0, ()      => { rotate_register_byte_right_carry('d')                              }],
+  0x0B: ['RRC E',               0, ()      => { rotate_register_byte_right_carry('e')                              }],
+  0x0C: ['RRC H',               0, ()      => { rotate_register_byte_right_carry('h')                              }],
+  0x0D: ['RRC L',               0, ()      => { rotate_register_byte_right_carry('l')                              }],
+  0x0E: ['RRC (HL)',            0, ()      => { rotate_memhl_byte_right_carry()                                    }],
+  0x0F: ['RRC A',               0, ()      => { rotate_register_byte_right_carry('a')                              }],
+  0x10: ['RL B',                0, ()      => { rotate_register_byte_left_through_carry('b')                       }],
+  0x11: ['RL C',                0, ()      => { rotate_register_byte_left_through_carry('c')                       }],
+  0x12: ['RL D',                0, ()      => { rotate_register_byte_left_through_carry('d')                       }],
+  0x13: ['RL E',                0, ()      => { rotate_register_byte_left_through_carry('e')                       }],
+  0x14: ['RL H',                0, ()      => { rotate_register_byte_left_through_carry('h')                       }],
+  0x15: ['RL L',                0, ()      => { rotate_register_byte_left_through_carry('l')                       }],
+  0x16: ['RL (HL)',             0, ()      => { rotate_memhl_byte_left_through_carry()                             }],
+  0x17: ['RL A',                0, ()      => { rotate_register_byte_left_through_carry('a')                       }],
+  0x18: ['RR B',                0, ()      => { rotate_register_byte_right_through_carry('b')                      }],
+  0x19: ['RR C',                0, ()      => { rotate_register_byte_right_through_carry('c')                      }],
+  0x1A: ['RR D',                0, ()      => { rotate_register_byte_right_through_carry('d')                      }],
+  0x1B: ['RR E',                0, ()      => { rotate_register_byte_right_through_carry('e')                      }],
+  0x1C: ['RR H',                0, ()      => { rotate_register_byte_right_through_carry('h')                      }],
+  0x1D: ['RR L',                0, ()      => { rotate_register_byte_right_through_carry('l')                      }],
+  0x1E: ['RR (HL)',             0, ()      => { rotate_memhl_byte_right_through_carry()                            }],
+  0x1F: ['RR A',                0, ()      => { rotate_register_byte_right_through_carry('a')                      }],
   0x30: ['SWAP B',              0, ()      => { swap_nibbles('b')                                                  }],
   0x31: ['SWAP C',              0, ()      => { swap_nibbles('c')                                                  }],
   0x32: ['SWAP D',              0, ()      => { swap_nibbles('d')                                                  }],
@@ -229,89 +272,124 @@ var CBInstructionSet = {
   0x37: ['SWAP A',              0, ()      => { swap_nibbles('a')                                                  }],
 }
 
+// right rotations, through carry and without
+function rotate_memhl_byte_right_carry(){
+  mem.writeByte(cpu.register.hl, cpu.ops.rrc(mem.readByte(cpu.register.hl)))
+}
+
+function rotate_memhl_byte_right_through_carry(){
+  mem.writeByte(cpu.register.hl, cpu.ops.rr(mem.readByte(cpu.register.hl)))
+}
+
+function rotate_register_byte_right_carry(register){
+  cpu.register[register] = cpu.ops.rrc(cpu.register[register])
+}
+
+function rotate_register_byte_right_through_carry(register){
+  cpu.register[register] = cpu.ops.rr(cpu.register[register])
+}
+
+// Left rotations, through carry and without (through carry is when the carry gets
+// placed into the register)
+function rotate_memhl_byte_left_carry(){
+  mem.writeByte(cpu.register.hl, cpu.ops.rlc(mem.readByte(cpu.register.hl)))
+}
+
+function rotate_memhl_byte_left_through_carry(){
+  mem.writeByte(cpu.register.hl, cpu.ops.rl(mem.readByte(cpu.register.hl)))
+}
+
+function rotate_register_byte_left_carry(register){
+  cpu.register[register] = cpu.ops.rlc(cpu.register[register])
+}
+
+function rotate_register_byte_left_through_carry(register){
+  cpu.register[register] = cpu.ops.rl(cpu.register[register])
+}
+
 function bcd_pack_a(){
-  cpu.register.a = cpu.math.bcd_pack(cpu.register.a)
+  cpu.register.a = cpu.ops.bcd_pack(cpu.register.a)
 }
 
 function swap_nibbles_memhl(){
-  mem.writeByte(cpu.register.hl, cpu.math.swapNibbles(mem.readByte(cpu.register.hl)))
+  mem.writeByte(cpu.register.hl, cpu.ops.swapNibbles(mem.readByte(cpu.register.hl)))
 }
 
 function swap_nibbles(register){
-  cpu.register[register] = cpu.math.swapNibbles(cpu.register[register])
+  cpu.register[register] = cpu.ops.swapNibbles(cpu.register[register])
 }
 
 function add_sp_x_signed_to_register_short(registerDest, registerSrc, x){
-  ld_register_short(registerDest, cpu.math.add_sp_x(cpu.register[registerSrc], cpu.math.signByte(x)))
+  ld_register_short(registerDest, cpu.ops.add_sp_x(cpu.register[registerSrc], cast.uint8(x)))
 }
 
 function add_register_short_to_hl(register){
-  cpu.register.hl = cpu.math.add_16(cpu.register.hl, cpu.register[register])
+  cpu.register.hl = cpu.ops.add_16(cpu.register.hl, cpu.register[register])
 }
 
 function dec_memhl(){
-  mem.writeByte(cpu.register.hl, cpu.math.dec(mem.readByte(cpu.register.hl)))
+  mem.writeByte(cpu.register.hl, cpu.ops.dec(mem.readByte(cpu.register.hl)))
 }
 
 function dec_register(register){
-  cpu.register[register] = cpu.math.dec(cpu.register[register])
+  cpu.register[register] = cpu.ops.dec(cpu.register[register])
 }
 
 function inc_memhl(){
-  mem.writeByte(cpu.register.hl, cpu.math.inc(mem.readByte(cpu.register.hl)))
+  mem.writeByte(cpu.register.hl, cpu.ops.inc(mem.readByte(cpu.register.hl)))
 }
 
 function inc_register(register){
-  cpu.register[register] = cpu.math.inc(cpu.register[register])
+  cpu.register[register] = cpu.ops.inc(cpu.register[register])
 }
 
-function math_op_set_a(op, val){
-  cpu.register.a = cpu.math[op](cpu.register.a, val)
+function ops_op_set_a(op, val){
+  cpu.register.a = cpu.ops[op](cpu.register.a, val)
 }
 
 // Bitwise ^ Register A with Provided Register. Results in A
 function xor_register(register){
-  math_op_set_a('xor', cpu.register[register])
+  ops_op_set_a('xor', cpu.register[register])
 }
 
 // Bitwise ^ Register A with Memory Location HL. Results in A
 function xor_memhl(){
-  math_op_set_a('xor', mem.readByte(cpu.register.hl))
+  ops_op_set_a('xor', mem.readByte(cpu.register.hl))
 }
 
 // Bitwise ^ Register A with Byte. Results in A
 function xor_byte(x){
-  math_op_set_a('xor', byte)
+  ops_op_set_a('xor', byte)
 }
 
 // Bitwise | Register A with Provided Register. Results in A
 function or_register(register){
-  math_op_set_a('or', cpu.register[register])
+  ops_op_set_a('or', cpu.register[register])
 }
 
 // Bitwise | Register A with Memory Location HL. Results in A
 function or_memhl(){
-  math_op_set_a('or', mem.readByte(cpu.register.hl))
+  ops_op_set_a('or', mem.readByte(cpu.register.hl))
 }
 
 // Bitwise | Register A with Byte. Results in A
 function or_byte(x){
-  math_op_set_a('or', byte)
+  ops_op_set_a('or', byte)
 }
 
 // Bitwise & Register A with Provided Register. Results in A
 function and_register(register){
-  math_op_set_a('and', cpu.register[register])
+  ops_op_set_a('and', cpu.register[register])
 }
 
 // Bitwise & Reigster A with Memory Location HL. Results in A
 function and_memhl(){
-  math_op_set_a('and', mem.readByte(cpu.register.hl))
+  ops_op_set_a('and', mem.readByte(cpu.register.hl))
 }
 
 // Bitwise & Register A with Byte. Results in A
 function and_byte(x){
-  math_op_set_a('and', byte)
+  ops_op_set_a('and', byte)
 }
 
 // Populates Byte Register with Memory Read (Short Arg)
@@ -370,17 +448,17 @@ function ld_register_register(registerDest, registerSrc){
 }
 
 function jr_x(byte){
-  cpu.register.pc += cpu.math.signByte(byte)
+  cpu.register.pc += cast.int8(byte)
 }
 
 function jr_z_x(byte){
   if(cpu.register.f.z){
-    cpu.register.pc += cpu.math.signByte(byte)
+    cpu.register.pc += cast.int8(byte)
   }
 }
 
 function add(x){
-  math_op_set_a('add',  x)
+  ops_op_set_a('add',  x)
 }
 
 // Add Register + Carry Flag to A. Results in A
@@ -415,7 +493,7 @@ function add_byte_to_a(byte){
 }
 
 function sub(x){
-  math_op_set_a('sub', x)
+  ops_op_set_a('sub', x)
 }
 
 // Subtract Register and Carry from A. Results in A
@@ -452,20 +530,16 @@ function jp_xx(byte, byte2){
   cpu.register.pc = bytesToShort(byte, byte2)
 }
 
-function di(){
-  cpu.queueDisableInterrupts()
-}
-
 function cp_a_memhl(){
-  cpu.math.subtract(cpu.register.a, mem.readByte(cpu.register.hl))
+  cpu.ops.subtract(cpu.register.a, mem.readByte(cpu.register.hl))
 }
 
 function cp_a_register(register){
-  cpu.math.subtract(cpu.register.a, cpu.register[register])
+  cpu.ops.subtract(cpu.register.a, cpu.register[register])
 }
 
 function cp_a_byte(byte){
-  cpu.math.subtract(cpu.register.a, byte)
+  cpu.ops.subtract(cpu.register.a, byte)
 }
 
 // POP Stack to Short Register

@@ -2,16 +2,20 @@
 var cpInstructions = [0xB8,0xB9,0xBA,0xBB,0xBC,0xBD,0xBE,0xBF,0xFE];
 
 // instruction set, and instructions all defined in instructions.js
-
 class CPU {
   constructor(rom){
     this.rom = rom;
     this.lastIsCP = false;
-    this.signingArr = new Int8Array(1)
-    this.signingShortArr = new Int16Array(1)
     this.interruptsEnabled = true;
+    this.halted = false;
+    this.stopped = false;
+
+    this.enableInterruptQueued = false;
     this.disableInterruptQueued = false;
+
     this.loopHndl;
+
+    cast = new CastHelper();
 
     var self = this;
 
@@ -21,42 +25,23 @@ class CPU {
       registers: document.querySelector('.registers')
     }
 
-    /*********************************88
-    *
-    *
-    *  ALLLL OF THE SIGNING BEING DONE HERE IS BAD!!!
-    *
-    *  THEY SHOULD ONLY BE CASTED TO UINT8 or UINT16, BUT
-    *  INSTEAD I'M CASTING TO INT8 and INT16 BECAUSE OF A BAD
-    *  DECISION!!!!
-    *
-    *  FIX THIS!!
-    *
-    *
-    *
-    *
-    ************************************/
-
-    this.math = {
+    this.ops = {
       add_sp_x(SP, x){
-        // this implementation may be bad... SP is a short, but we're
-        // treating it as a byte.
         var decRes = SP + x;
-        var res = self.signShort(decRes)
+        var res = cast.uint16(decRes)
 
         cpu.register.f = {
           z: 0,
           n: 0,
           h: (SP & 0xF) + (x & 0xF) > 0xF,
-          c: decRes > 0xFFFF // should this be 0xFF or 0xFFFF? i think 0xFFFF
-                             // because SP is a short
+          c: decRes > 0xFFFF
         }
 
         return res
       },
       add(x, y){
         var decRes = x + y;
-        var res = self.signByte(decRes)
+        var res = cast.uint8(decRes)
 
         cpu.register.f = {
           z: res === 0 || (self.lastIsCP ? x === y : false),
@@ -69,7 +54,7 @@ class CPU {
       },
       add_16(x, y){
         var decRes = x + y
-        var res = self.signShort(decRes)
+        var res = cast.uint16(decRes)
 
         cpu.register.f = {
           z: cpu.register.f.z,
@@ -82,7 +67,7 @@ class CPU {
       },
       subtract(x, y){
         var decRes = x - y
-        var res = self.signByte(decRes)
+        var res = cast.uint8(decRes)
 
         cpu.register.f = {
           z: res === 0 || (self.lastIsCP ? x === y : false),
@@ -106,7 +91,7 @@ class CPU {
        *
        ***************************************/
       xor(n, x){
-        var res = self.signByte(n ^ x)
+        var res = cast.uint8(n ^ x)
 
         cpu.register.f = {
           z: res === 0,
@@ -118,7 +103,7 @@ class CPU {
         return res;
       },
       and(x, y){
-        var res = self.signByte(x & y)
+        var res = cast.uint8(x & y)
 
         cpu.register.f = {
           z: res === 0,
@@ -130,7 +115,7 @@ class CPU {
         return res
       },
       or(x, y){
-        var res = self.signByte(x | y)
+        var res = cast.uint8(x | y)
 
         cpu.register.f = {
           z: res === 0,
@@ -142,7 +127,7 @@ class CPU {
         return res
       },
       inc(x){
-        var res = self.signByte(x + 1)
+        var res = cast.uint8(x + 1)
 
         cpu.register.f = {
           z: res === 0,
@@ -154,7 +139,7 @@ class CPU {
         return res
       },
       dec(x){
-        var res = self.signByte(x - 1)
+        var res = cast.uint8(x - 1)
 
         cpu.register.f = {
           z: res === 0,
@@ -165,14 +150,110 @@ class CPU {
 
         return res
       },
-      signShort(x){
-        self.signingShortArr[0] = x
-        return self.signingShortArr[0]
+      // complement X (used in opCode 0x2F)
+      cpl(x){
+        var res = cast.uint(x ^ 0xFF)
+
+        cpu.register.f = {
+          z: cpu.register.f.z,
+          n: 1,
+          h: 1,
+          c: cpu.register.f.c
+        }
+
+        return res
       },
-      signByte(x){
-        // stupid way of converting to signed byte for now.
-        self.signingArr[0] = x;
-        return self.signingArr[0]
+      // complement carry flag (opCode 0x3F)
+      ccf(){
+        cpu.register.f = {
+          z: cpu.register.f.z,
+          n: 0,
+          h: 0,
+          c: !cpu.register.f.c
+        }
+      },
+      scf(){
+        cpu.register.f = {
+          z: cpu.register.f.z,
+          n: 0,
+          h: 0,
+          c: 1
+        }
+      },
+
+      /*****************************
+       *
+       *
+       *  the following 4 rotate functions are implemented (likely)
+       *  incorrectly (possibly some are ok). 
+       *
+       *  Shifting drops the end bits off, and doesn't move them around
+       *  to the other side, where as rotating preserves the end bits;
+       *  whether that means it goes to the carry, and the carry gets pit
+       *  in bit 0, or if bit 7 just gets moved to bit 0.
+       *
+       *  i think the rrc and rlc are incorrect, but rr and rl might be
+       *  correct due to that.
+       *
+       *
+       ******************************/
+
+
+      // rotate left (old bit 7 goes into carry)
+      rlc(x){
+        var bit7 = x & 0b10000000
+        var res = cast.uint8(x << 1)
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 0,
+          c: bit7
+        }
+
+        return res
+      },
+      // rotate left through carry (put old carry in 0 bit, old 7bit into carry)
+      rl(x){
+        var bit7 = x & 0b10000000
+        var res = cast.uint8(x << 1) | (cpu.register.f.c ? 1 : 0)
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 0,
+          c: bit7
+        }
+
+        return res
+      },
+      // rotate right (old bit 0 goes into carry)
+      rrc(x){
+        var bit0 = x & 0b00000001
+        var res = cast.uint8(x >>> 1)
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 0,
+          c: bit0
+        }
+
+        return res
+      },
+      // rotate right through carry (put old carry into 7th bit, old 7th bit into carry)
+      rr(x){
+        var bit0 = x & 0b00000001
+        var res = cast.uint8(x >>> 1) | ((cpu.register.f.c ? 1 : 0) << 7)
+
+        cpu.register.f = {
+          z: res === 0,
+          n: 0,
+          h: 0,
+          c: bit0
+        }
+
+        return res
       },
       swapNibbles(x){
         var res = ((x & 0xF0) >>> 8) + ((x & 0xF) << 8)
@@ -192,7 +273,7 @@ class CPU {
 
         var decRes = (highNib << 4) | lowNib
 
-        var res = self.signByte(decRes)
+        var res = cast.uint8(decRes)
 
         cpu.register.f = {
           z: res === 0,
@@ -205,35 +286,22 @@ class CPU {
       }
     }
 
-    // most registers tend to start with 0,
-    // but SP starts with 0xFFFE, and PC starts with
-    // 0x0100
+    // 0 1, 2 3, 4 5, 6 7, 8 9, 10 11
+    // A F, B C, D E, H L, S P, P  C
+    var byteRegisters = {a: 0, b: 2, c: 3, d: 4, e: 5, h: 6, l: 7}
+    var shortRegisters = {bc: 2, de: 4, hl: 6, sp: 8, pc: 10}
+
     this.register = {
-      data: [0,0,0,0,0,0,0,0,0xFFFE,0x0100],
-      pcUpdated: false,
-
-      get a(){ return this.data[0] },
-      set a(v){ this.data[0] = v },
-
-      get b(){ return this.data[1] },
-      set b(v){ this.data[1] = v },
-
-      get c(){ return this.data[2] },
-      set c(v){ this.data[2] = v },
-
-      get d(){ return this.data[3] },
-      set d(v){ this.data[3] = v },
-
-      get e(){ return this.data[4] },
-      set e(v){ this.data[4] = v },
+      data: new DataView(new ArrayBuffer(12)),
 
       // F register gets set differently
       get f(){
+        var regF = this.data.getUint8(1)
         return {
-          z: !!(this.data[5] & 0b10000000),
-          n: !!(this.data[5] & 0b01000000),
-          h: !!(this.data[5] & 0b00100000),
-          c: !!(this.data[5] & 0b00010000)
+          z: !!(regF & 0b10000000),
+          n: !!(regF & 0b01000000),
+          h: !!(regF & 0b00100000),
+          c: !!(regF & 0b00010000)
         }
       },
       set f({ z, n, h, c }){
@@ -246,60 +314,56 @@ class CPU {
         val = val << 1
         val += Number(c)
         val = val << 4
-        this.data[5] = val
+        this.data.setUint8(1, val)
+        self.updateRegisterView()
       },
 
-      get h(){ return this.data[6] },
-      set h(v){ this.data[6] = v },
-
-      get l(){ return this.data[7] },
-      set l(v){ this.data[7] = v },
-
-      get sp(){ return this.data[8] },
-      set sp(v){ this.data[8] = v },
-
-      get pc(){ return this.data[9] },
-      set pc(v){ this.data[9] = v; this.pcUpdated = true },
-
-      get af(){ return (this.data[0] << 8) + this.data[5] },
+      get af(){
+        return this.data.getUint16(0, true)
+      },
       set af(v){
-        this.data[0] = (v & 0xFF00) >>> 8;
-        // the least significant byte is always 0000 for register F
-        // in the GameBoy Z80 implementation, regardless what gets
-        // written to it.
-        this.data[5] = v & 0xF0;
-      },
-
-      get bc(){ return (this.data[1] << 8) + this.data[2] },
-      set bc(v){
-        this.data[1] = (v & 0xFF00) >>> 8;
-        this.data[2] = v & 0xFF;
-      },
-
-      get de(){
-        // if 0xFF is in D, and 0x80 is in E, when we read
-        // this we need to build this into 0xFF80.
-        return (this.data[3] << 8) + this.data[4];
-      },
-      set de(v){
-        this.data[3] = (v & 0xFF00) >>> 8;
-        this.data[4] = v & 0xFF;
-      },
-
-      get hl(){ return (this.data[6] << 8) + this.data[7] },
-      set hl(v){
-        this.data[6] = (v & 0xFF00) >>> 8;
-        this.data[7] = v & 0xFF;
+        this.data.setUint16(0, v & 0xFFF0, true)
+        self.updateRegisterView()
       }
     }
+
+    for(const [call, littleEndian, source] of [['Uint8', false, byteRegisters], ['Uint16', true, shortRegisters]]) {
+      for(const [register, offset] of Object.entries(source)){
+        Object.defineProperty(this.register, register, {
+          get: function(){
+            return this.data[`get${call}`](offset, littleEndian)
+          },
+          set: function(v){
+            this.data[`set${call}`](offset, v, littleEndian)
+            self.updateRegisterView()
+          }
+        })
+      }
+    }
+
+    // Initialize the appropriate registers
+    this.register.sp = 0xFFFE
+    this.register.pc = 0x0100
+  }
+
+  stopCPU(){
+    this.stopped = true
+  }
+
+  haltCPU(){
+    this.halted = true
   }
 
   stopExecution(){
     clearInterval(this.loopHndl)
   }
 
+  queueEnableInterrupts(){
+    this.enableInterruptQueued = true
+  }
+
   queueDisableInterrupts(){
-    this.queueDisablingInterrupts = true;
+    this.disableInterruptQueued = true;
   }
 
   disableInterrupts(){
@@ -314,13 +378,20 @@ class CPU {
     var instruction;
     var opCode;
     var interruptsQueuedForDisable = false;
+    var interruptsQueuedForEnable = false;
     this.loopHndl = setInterval(() => {
+      if(this.halted || this.stopped)
+        return
+
       opCode = this.rom[this.register.pc]
       // interrupts can be queued to be disabled after the NEXT instruction.
       // in this case, we check to see if it's been queued by the last
       // instruction, then clear the flag.
-      interruptsQueuedForDisable = this.queueDisablingInterrupts;
-      this.queueDisablingInterrupts = false;
+      interruptsQueuedForDisable = this.disableInterruptQueued;
+      this.disableInterruptQueued = false;
+
+      interruptsQueuedForEnable = this.enableInterruptQueued;
+      this.enableInterruptQueued = false
 
       // in our math operations we need to know if the last OP is
       // a CP type OpCode. This influences the F register flags that get set.
@@ -353,6 +424,10 @@ class CPU {
         this.disableInterrupts();
       }
 
+      if(interruptsQueuedForEnable){
+        this.enableInterrupts();
+      }
+
       this.lastIsCP = false;
       interruptsQueuedForDisable = false
     }, 100)
@@ -382,23 +457,6 @@ class CPU {
 
     // run the instruction
     instr[2].apply(this, args)
-
-    var f_register = this.register.f
-    this.dataOutput.f_flags.innerHTML = `
-      Z: ${f_register.z ? "1" : "0"}<br>
-      N: ${f_register.n ? "1" : "0"}<br>
-      H: ${f_register.h ? "1" : "0"}<br>
-      C: ${f_register.c ? "1" : "0"}`
-
-          this.dataOutput.registers.innerHTML = `
-      AF: ${convertShortToHex(this.register.af)}<br>
-      BC: ${convertShortToHex(this.register.bc)}<br>
-      DE: ${convertShortToHex(this.register.de)}<br>
-      HL: ${convertShortToHex(this.register.hl)}<br>
-      SP: ${convertShortToHex(this.register.sp)}<br>
-      PC: ${convertShortToHex(this.register.pc)}
-    `
-
   }
 
   retrieveArgs(count){
@@ -413,5 +471,23 @@ class CPU {
     }
 
     return args;
+  }
+
+  updateRegisterView(){
+    var f_register = this.register.f
+    this.dataOutput.f_flags.innerHTML = `
+      Z: ${f_register.z ? "1" : "0"}<br>
+      N: ${f_register.n ? "1" : "0"}<br>
+      H: ${f_register.h ? "1" : "0"}<br>
+      C: ${f_register.c ? "1" : "0"}`
+
+    this.dataOutput.registers.innerHTML = `
+      AF: ${convertShortToHex(this.register.af)}<br>
+      BC: ${convertShortToHex(this.register.bc)}<br>
+      DE: ${convertShortToHex(this.register.de)}<br>
+      HL: ${convertShortToHex(this.register.hl)}<br>
+      SP: ${convertShortToHex(this.register.sp)}<br>
+      PC: ${convertShortToHex(this.register.pc)}
+    `
   }
 }
