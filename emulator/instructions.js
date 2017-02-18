@@ -1,11 +1,3 @@
-
-/* next instruction opcode I need to implement from PDF: 
-
-9. SLA (0xCB 0x20 - 0x27)
-pg. 105
-
-*/
-
 // format for each instructionSet item:
 // Instruction, byteCount (how many arg bytes), funciton ref
 var InstructionSet = {
