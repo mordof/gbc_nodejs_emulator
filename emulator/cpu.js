@@ -418,9 +418,26 @@ class CPU {
     var opCode;
     var interruptsQueuedForDisable = false;
     var interruptsQueuedForEnable = false;
+    var interrupts = [[1, 0x40], [2, 0x48], [4, 0x50], [8, 0x58], [16, 0x60]]
     this.loopHndl = setInterval(() => {
       if(this.halted || this.stopped)
         return
+
+      // gotta check for, and potentially handle, intterupts
+      if(this.interruptsEnabled){
+        for(var i=0; i < interrupts.length; i++){
+          // look for IE and IF to both have the same interrupt flag enabled
+          if(mem.ie & interrupts[i][0] && mem.if & interrupts[i][0]){
+            // disable global interrupts
+            this.interruptsEnabled = false;
+            // unset the bit in IF related to that interrupt (keep all others)
+            mem.if = mem.if & ~interrupts[i][0]
+            // push pc to stack, jump to interrupt vector
+            push_pc_to_stack_jump(interrupts[i][1])
+            break;
+          }
+        }
+      }
 
       opCode = this.rom[this.register.pc]
       // interrupts can be queued to be disabled after the NEXT instruction.
