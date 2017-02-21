@@ -1,4 +1,3 @@
-
 var ScreenProperties = {
   width: 320,
   height: 288,
@@ -22,3 +21,16 @@ class Screen {
   }
 }
 
+class PPU {
+  constructor() {
+    this.flags = []
+  }
+
+  read(address){
+
+  }
+
+  write(address, val){
+
+  }
+}

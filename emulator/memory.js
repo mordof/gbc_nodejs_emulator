@@ -23,6 +23,8 @@ class Memory {
     } else if(address >= 0x9C00 && address <= 0x9FFF) {
       console.info("BG Map Data 2 Read From - From Instruction: ", cpu.register.pc);
 
+    } else if(address >= 0xFF40 && address <= 0xFF4B){
+      return ppu.read(address);
     } else if(address === 0xFF0F){
       return this.if
     } else if(address === 0xFFFF){
@@ -36,6 +38,8 @@ class Memory {
     if(address >= 0xC000 && address <=  0xCFFF){
       // log('Bank 0 RAM Write:', address, '(', val, ')')
       this.internal_ram[0][address] = val;
+    } else if(address >= 0xFF40 && address <= 0xFF4B){
+      ppu.write(address, val)
     } else if(address === 0xFF0F){
       this.if = val;
     } else if(address === 0xFFFF){
