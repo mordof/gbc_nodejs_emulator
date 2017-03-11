@@ -3,6 +3,8 @@ class Memory {
     this.internal_ram_bank_id = 1
     this.internal_ram = [[], [], [], [], [], [], [], []]
 
+    this.zero_page_ram = []
+    this.io = []
     this.ie = 0
     this.if = 0
   }
@@ -24,9 +26,13 @@ class Memory {
       console.info("BG Map Data 2 Read From - From Instruction: ", cpu.register.pc);
 
     } else if(address >= 0xFF40 && address <= 0xFF4B){
-      return ppu.read(address);
+      return gpu.read(address);
+    } else if(address >= 0xFF00 && address <= 0xFF7F){
+      return this.io[address - 0xFF00]
     } else if(address === 0xFF0F){
       return this.if
+    } else if(address >= 0xFF80 && address <= 0xFFFE){
+      return this.zero_page_ram[address - 0xFF80]
     } else if(address === 0xFFFF){
       return this.ie
     } else {
@@ -39,11 +45,16 @@ class Memory {
       // log('Bank 0 RAM Write:', address, '(', val, ')')
       this.internal_ram[0][address] = val;
     } else if(address >= 0xFF40 && address <= 0xFF4B){
-      ppu.write(address, val)
+      gpu.write(address, val)
+    } else if(address >= 0xFF00 && address <= 0xFF7F){
+      this.io[address - 0xFF00] = val
     } else if(address === 0xFF0F){
       this.if = val;
+    } else if(address >= 0xFF80 && address <= 0xFFFE){
+      this.zero_page_ram[address - 0xFF80] = val
     } else if(address === 0xFFFF){
       this.ie = val;
+
     } else {
       console.error('Write Attempt at Unimplemented Address', convertShortToHex(address))
     }

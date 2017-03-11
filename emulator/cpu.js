@@ -9,6 +9,8 @@ class CPU {
     this.interruptsEnabled = true;
     this.halted = false;
     this.stopped = false;
+    this.clock = 0;
+    this.lastCycleCount = 0;
 
     this.enableInterruptQueued = false;
     this.disableInterruptQueued = false;
@@ -416,28 +418,15 @@ class CPU {
   executeROM(){
     var instruction;
     var opCode;
+    var highCycleCost = false;
     var interruptsQueuedForDisable = false;
     var interruptsQueuedForEnable = false;
-    var interrupts = [[1, 0x40], [2, 0x48], [4, 0x50], [8, 0x58], [16, 0x60]]
+    
     this.loopHndl = setInterval(() => {
       if(this.halted || this.stopped)
         return
 
-      // gotta check for, and potentially handle, intterupts
-      if(this.interruptsEnabled){
-        for(var i=0; i < interrupts.length; i++){
-          // look for IE and IF to both have the same interrupt flag enabled
-          if(mem.ie & interrupts[i][0] && mem.if & interrupts[i][0]){
-            // disable global interrupts
-            this.interruptsEnabled = false;
-            // unset the bit in IF related to that interrupt (keep all others)
-            mem.if = mem.if & ~interrupts[i][0]
-            // push pc to stack, jump to interrupt vector
-            push_pc_to_stack_jump(interrupts[i][1])
-            break;
-          }
-        }
-      }
+      checkForInterrupts();
 
       opCode = this.rom[this.register.pc]
       // interrupts can be queued to be disabled after the NEXT instruction.
@@ -454,6 +443,8 @@ class CPU {
       if(cpInstructions.indexOf(opCode) > -1)
         this.lastIsCP = true;
 
+      this.lastCycleCount = cycleCostRef[opCode]
+
       // grab the instruction implementation details for the current OpCode
       // if opCode is CB, there's a secondary instruction list. at least we
       // aren't on an actual Z80, as there's a whole bunch more.
@@ -461,12 +452,17 @@ class CPU {
         this.register.pc += 1
         opCode = this.rom[this.register.pc]
         instruction = CBInstructionSet[opCode]
+        this.lastCycleCount = opCode & 0x0F == 0x6 || opCode & 0x0F == 0xE ? 4 : 2
       } else {
         instruction = InstructionSet[opCode]
       }
 
       if(instruction){
-        this.execInstruction(instruction)
+        highCycleCost = this.execInstruction(instruction)
+
+        if(this.lastCycleCount.length)
+          this.lastCycleCount = this.lastCycleCount[highCycleCost ? 0 : 1]
+
       } else {
         console.error("CPU Instruction Not Found:")
         console.log(
@@ -483,6 +479,10 @@ class CPU {
       if(interruptsQueuedForEnable){
         this.enableInterrupts();
       }
+
+      this.clock += this.lastCycleCount
+
+      gpu.step()
 
       this.lastIsCP = false;
       interruptsQueuedForDisable = false

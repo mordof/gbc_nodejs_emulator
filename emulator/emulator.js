@@ -4,7 +4,7 @@ class Emulator {
     fs.readFile('../roms/rom_rom_rom.gb', function(err, data){
       mem = new Memory();
       cpu = new CPU(data);
-      ppu = new PPU();
+      gpu = new GPU();
       cpu.executeROM();
     })
   }
